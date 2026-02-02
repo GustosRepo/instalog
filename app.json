@@ -1,4 +1,6 @@
 {
+  "name": "Instalog",
+  "displayName": "Instalog",
   "expo": {
     "name": "Instalog",
     "slug": "instalog",
@@ -14,7 +16,5 @@
         "projectId": "74a56afa-da19-49f5-99ab-0727884ec624"
       }
     }
-  },
-  "name": "Instalog",
-  "displayName": "Instalog"
+  }
 }
