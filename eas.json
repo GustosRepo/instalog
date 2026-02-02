@@ -18,14 +18,5 @@
         "buildConfiguration": "Release"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "YOUR_APPLE_ID@email.com",
-        "ascAppId": "YOUR_ASC_APP_ID",
-        "appleTeamId": "YOUR_TEAM_ID"
-      }
-    }
   }
 }
