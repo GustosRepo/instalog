@@ -1,0 +1,15 @@
+# Assets Folder
+
+Place your app images, logos, and icons here.
+
+## Recommended Structure
+- logo.png (and logo@2x.png, logo@3x.png)
+- icons/
+- images/
+
+## Usage in React Native
+```typescript
+import {Image} from 'react-native';
+
+<Image source={require('./assets/logo.png')} style={{width: 100, height: 100}} />
+```

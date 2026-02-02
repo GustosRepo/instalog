@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Instalog",
+    "slug": "instalog",
+    "version": "1.0.0",
+    "ios": {
+      "bundleIdentifier": "com.instalog.app",
+      "buildNumber": "1",
+      "supportsTablet": false
+    },
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "74a56afa-da19-49f5-99ab-0727884ec624"
+      }
+    }
+  },
+  "name": "Instalog",
+  "displayName": "Instalog"
+}
