@@ -5,7 +5,7 @@
  * View what you've accomplished today.
  */
 
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,11 @@ import {
   StyleSheet,
   SafeAreaView,
   ImageBackground,
+  RefreshControl,
 } from 'react-native';
 import {useLogStore} from '../stores/useLogStore';
 import {LogEntry, formatTime} from '../models/types';
+import {storage} from '../storage/mmkv';
 
 const LogItem: React.FC<{item: LogEntry}> = ({item}) => (
   <View style={styles.logItem}>
@@ -39,7 +41,17 @@ const LogItem: React.FC<{item: LogEntry}> = ({item}) => (
 
 const TodayScreen: React.FC = () => {
   const getTodayLogs = useLogStore(state => state.getTodayLogs);
+  const refreshLogs = useLogStore(state => state.refreshLogs);
+  const [refreshing, setRefreshing] = useState(false);
   const todayLogs = getTodayLogs();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // First reload from App Group (widget may have added logs)
+    await storage.reloadFromAppGroup();
+    refreshLogs();
+    setTimeout(() => setRefreshing(false), 300);
+  };
 
   // Sort by most recent first
   const sortedLogs = [...todayLogs].sort(
@@ -78,6 +90,13 @@ const TodayScreen: React.FC = () => {
           }
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#6E6AF2"
+            />
+          }
           />
       </ImageBackground>
     </SafeAreaView>

@@ -14,9 +14,11 @@ import {
   TouchableOpacity,
   Modal,
   ImageBackground,
+  RefreshControl,
 } from 'react-native';
 import {useLogStore} from '../stores/useLogStore';
 import {LogEntry, formatTime} from '../models/types';
+import {storage} from '../storage/mmkv';
 
 // Helper: Group logs by YYYY-MM-DD
 const groupLogsByDay = (logs: LogEntry[]): Record<string, LogEntry[]> => {
@@ -374,8 +376,19 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
 // Main Review Screen
 const ReviewScreen: React.FC = () => {
   const allLogs = useLogStore(state => state.logs);
+  const refreshLogs = useLogStore(state => state.refreshLogs);
+  const [refreshing, setRefreshing] = useState(false);
 
   const logsByDay = useMemo(() => groupLogsByDay(allLogs), [allLogs]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // First reload from App Group (widget may have added logs)
+    await storage.reloadFromAppGroup();
+    refreshLogs();
+    // Small delay for visual feedback
+    setTimeout(() => setRefreshing(false), 300);
+  };
 
   if (allLogs.length === 0) {
     return (
@@ -408,7 +421,14 @@ const ReviewScreen: React.FC = () => {
       <ScrollView
         style={{flex: 1}}
         contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 32}}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#6E6AF2"
+          />
+        }>
         <ActivityHeatmap logsByDay={logsByDay} />
         <BucketsSection logs={allLogs} />
         <SearchSection logs={allLogs} />

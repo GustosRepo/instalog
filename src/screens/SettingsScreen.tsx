@@ -23,6 +23,7 @@ const SettingsScreen: React.FC = () => {
   const logs = useLogStore(state => state.logs);
   const buckets = useLogStore(state => state.buckets);
   const refreshLogs = useLogStore(state => state.refreshLogs);
+  const refreshBuckets = useLogStore(state => state.refreshBuckets);
 
   const handleExportLogs = async () => {
     try {
@@ -59,6 +60,7 @@ const SettingsScreen: React.FC = () => {
           onPress: () => {
             storage.clearAll();
             refreshLogs();
+            refreshBuckets();
             Haptics.warning();
             Alert.alert('Done', 'All data has been cleared');
           },

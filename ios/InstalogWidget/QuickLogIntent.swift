@@ -54,10 +54,12 @@ struct QuickLogButton: AppIntent {
     var preset: WidgetPresetEntity
     
     func perform() async throws -> some IntentResult {
-        // Delegate to QuickLogIntent
+        // Delegate to QuickLogIntent with all preset data
+        // If text is empty, use the label as the log text
         let intent = QuickLogIntent()
-        intent.text = preset.text
+        intent.text = preset.text.isEmpty ? preset.label : preset.text
         intent.presetId = preset.id
+        intent.bucketId = preset.bucketId
         return try await intent.perform()
     }
 }
@@ -71,6 +73,7 @@ struct WidgetPresetEntity: AppEntity {
     let label: String
     let text: String
     let icon: String
+    let bucketId: String?
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Widget Preset"
     
@@ -88,11 +91,11 @@ struct WidgetPresetQuery: EntityQuery {
         let presets = SharedStore.loadPresets()
         return presets
             .filter { identifiers.contains($0.id) }
-            .map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon) }
+            .map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon, bucketId: $0.bucketId) }
     }
     
     func suggestedEntities() async throws -> [WidgetPresetEntity] {
         let presets = SharedStore.loadPresets()
-        return presets.map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon) }
+        return presets.map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon, bucketId: $0.bucketId) }
     }
 }

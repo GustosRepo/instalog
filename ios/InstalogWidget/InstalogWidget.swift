@@ -56,12 +56,26 @@ struct InstalogWidgetEntryView : View {
     let accentColor = Color(red: 110/255, green: 106/255, blue: 242/255)
 
     var body: some View {
-        ZStack {
-            backgroundColor.ignoresSafeArea()
-            
-            if family == .systemSmall {
+        switch family {
+        case .systemSmall:
+            ZStack {
+                backgroundColor.ignoresSafeArea()
                 smallWidget
-            } else {
+            }
+        case .systemMedium:
+            ZStack {
+                backgroundColor.ignoresSafeArea()
+                mediumWidget
+            }
+        case .accessoryCircular:
+            lockScreenCircular
+        case .accessoryRectangular:
+            lockScreenRectangular
+        case .accessoryInline:
+            lockScreenInline
+        default:
+            ZStack {
+                backgroundColor.ignoresSafeArea()
                 mediumWidget
             }
         }
@@ -73,61 +87,69 @@ struct InstalogWidgetEntryView : View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Image("logonobg")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .opacity(0.7)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(accentColor)
                 Text("Instalog")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(textColor.opacity(0.9))
+                    .foregroundColor(.white)
                 Spacer()
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Circle()
-                        .fill(accentColor.opacity(0.5))
+                        .fill(accentColor)
                         .frame(width: 6, height: 6)
                     Text("\(entry.todayCount)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(secondaryTextColor)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 10)
             
             Spacer()
             
-            // Show setup message if no presets configured
+            // Show default Quick Log button if no presets configured
             if entry.presets.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 32, weight: .light))
-                        .foregroundColor(secondaryTextColor.opacity(0.6))
-                    
-                    Text("Open app")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(textColor)
-                    
-                    Text("Configure in Settings")
-                        .font(.system(size: 12))
-                        .foregroundColor(secondaryTextColor)
+                Link(destination: URL(string: "instalog://log")!) {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(accentColor)
+                                .frame(width: 56, height: 56)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Quick Log")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
+                
+                Text("Tap to log")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
+                    .padding(.top, 2)
             }
             // First preset button
             else if let preset = entry.presets.first {
                 if #available(iOS 17.0, *) {
                     Button(intent: createIntent(for: preset)) {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .fill(accentColor.opacity(0.15))
-                                    .frame(width: 56, height: 56)
+                                    .fill(accentColor)
+                                    .frame(width: 52, height: 52)
                                 
                                 Image(systemName: preset.icon)
-                                    .font(.system(size: 28, weight: .medium))
-                                    .foregroundColor(accentColor)
+                                    .font(.system(size: 26, weight: .medium))
+                                    .foregroundColor(.white)
                             }
                             
                             Text(preset.label)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(textColor)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
                                 .lineLimit(1)
                         }
                     }
@@ -135,20 +157,20 @@ struct InstalogWidgetEntryView : View {
                 } else {
                     // Fallback for iOS < 17: Open app
                     Link(destination: URL(string: "instalog://log")!) {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .fill(accentColor.opacity(0.15))
-                                    .frame(width: 56, height: 56)
+                                    .fill(accentColor)
+                                    .frame(width: 52, height: 52)
                                 
                                 Image(systemName: preset.icon)
-                                    .font(.system(size: 28, weight: .medium))
-                                    .foregroundColor(accentColor)
+                                    .font(.system(size: 26, weight: .medium))
+                                    .foregroundColor(.white)
                             }
                             
                             Text(preset.label)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(textColor)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
                                 .lineLimit(1)
                         }
                     }
@@ -157,7 +179,7 @@ struct InstalogWidgetEntryView : View {
             
             Spacer()
         }
-        .padding(16)
+        .padding(14)
     }
     
     // MARK: - Medium Widget (Up to 3 Buttons)
@@ -168,59 +190,60 @@ struct InstalogWidgetEntryView : View {
             HStack {
                 Image("logonobg")
                     .resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 18, height: 18)
                     .opacity(0.7)
                 Text("Instalog")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(textColor.opacity(0.9))
                 Spacer()
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Circle()
                         .fill(accentColor.opacity(0.5))
-                        .frame(width: 6, height: 6)
+                        .frame(width: 5, height: 5)
                     Text("\(entry.todayCount) today")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(secondaryTextColor)
                 }
             }
-            .padding(.bottom, 18)
+            .padding(.bottom, 14)
             
-            // Show setup message if no presets configured
+            // Show default Quick Log button if no presets configured
             if entry.presets.isEmpty {
                 Spacer()
-                VStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(surfaceColor)
-                            .frame(width: 56, height: 56)
+                Link(destination: URL(string: "instalog://log")!) {
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(accentColor)
+                                .frame(width: 72, height: 72)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
                         
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(secondaryTextColor.opacity(0.7))
-                    }
-                    
-                    VStack(spacing: 6) {
-                        Text("Configure Quick-Log Buttons")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(textColor.opacity(0.95))
-                        
-                        Text("Open app → Settings → Widget")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(secondaryTextColor.opacity(0.7))
+                        Text("Quick Log")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(textColor)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                
+                Text("Tap to log • Configure in Settings")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(secondaryTextColor)
+                    .padding(.top, 6)
+                
                 Spacer()
             } else {
                 // Preset buttons in a row
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     ForEach(entry.presets.prefix(3)) { preset in
                         presetButton(for: preset)
                     }
                 }
             }
         }
-        .padding(16)
+        .padding(14)
     }
     
     // MARK: - Preset Button
@@ -229,25 +252,26 @@ struct InstalogWidgetEntryView : View {
     private func presetButton(for preset: WidgetPreset) -> some View {
         if #available(iOS 17.0, *) {
             Button(intent: createIntent(for: preset)) {
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(surfaceColor)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 48, height: 48)
                         
                         Image(systemName: preset.icon)
-                            .font(.system(size: 22, weight: .medium))
+                            .font(.system(size: 24, weight: .medium))
                             .foregroundColor(accentColor)
                     }
                     
                     Text(preset.label)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(textColor.opacity(0.9))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.plain)
         }
     }
     
@@ -256,10 +280,62 @@ struct InstalogWidgetEntryView : View {
     @available(iOS 17.0, *)
     private func createIntent(for preset: WidgetPreset) -> QuickLogIntent {
         let intent = QuickLogIntent()
-        intent.text = preset.text
+        // Use label as text if log text is empty
+        intent.text = preset.text.isEmpty ? preset.label : preset.text
         intent.presetId = preset.id
         intent.bucketId = preset.bucketId
         return intent
+    }
+    
+    // MARK: - Lock Screen Widgets
+    
+    @available(iOS 16.0, *)
+    private var lockScreenCircular: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: 2) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18, weight: .medium))
+                Text("\(entry.todayCount)")
+                    .font(.system(size: 16, weight: .bold))
+            }
+        }
+    }
+    
+    @available(iOS 16.0, *)
+    private var lockScreenRectangular: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16, weight: .medium))
+                Text("Instalog")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            
+            if entry.todayCount == 0 {
+                Text("No logs yet today")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            } else if entry.todayCount == 1 {
+                Text("1 log today")
+                    .font(.system(size: 14, weight: .medium))
+            } else {
+                Text("\(entry.todayCount) logs today")
+                    .font(.system(size: 14, weight: .medium))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    @available(iOS 16.0, *)
+    private var lockScreenInline: some View {
+        if entry.todayCount == 0 {
+            Text("Instalog: No logs")
+        } else if entry.todayCount == 1 {
+            Text("Instalog: 1 log")
+        } else {
+            Text("Instalog: \(entry.todayCount) logs")
+        }
     }
 }
 
@@ -267,21 +343,30 @@ struct InstalogWidgetEntryView : View {
 
 struct InstalogWidget: Widget {
     let kind: String = "InstalogWidget"
+    
+    // Dark theme colors
+    static let backgroundColor = Color(red: 11/255, green: 13/255, blue: 16/255)
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             if #available(iOS 17.0, *) {
                 InstalogWidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
+                    .containerBackground(InstalogWidget.backgroundColor, for: .widget)
             } else {
                 InstalogWidgetEntryView(entry: entry)
                     .padding()
-                    .background(Color.black)
+                    .background(InstalogWidget.backgroundColor)
             }
         }
         .configurationDisplayName("Instalog")
         .description("Quick log buttons for instant logging")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
     }
 }
 

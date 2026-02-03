@@ -17,7 +17,7 @@ struct WidgetPreset: Codable, Identifiable {
 
 struct LogEntry: Codable {
     let id: String
-    let timestamp: TimeInterval
+    let timestamp: String  // ISO 8601 string to match React Native
     let text: String?
     let bucketId: String?
     let dateKey: String
@@ -71,32 +71,36 @@ class SharedStore {
             return
         }
         
-        // Create log entry
-        let timestamp = Date().timeIntervalSince1970
-        let dateKey = Self.formatDateKey(Date())
-        let logId = "\(Int(Date().timeIntervalSince1970 * 1000))-\(Int.random(in: 0...999))"
+        // Create log entry with ISO 8601 timestamp (matches React Native format)
+        let now = Date()
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let timestamp = isoFormatter.string(from: now)
+        let dateKey = Self.formatDateKey(now)
+        let logId = "\(Int(now.timeIntervalSince1970 * 1000))-\(Int.random(in: 0...999))"
         
         let newLog = LogEntry(
             id: logId,
             timestamp: timestamp,
-            text: text,
+            text: text.isEmpty ? nil : text,
             bucketId: bucketId,
             dateKey: dateKey
         )
         
         // Load existing logs
         var logs = loadLogs()
-        logs.insert(newLog, at: 0) // Add to beginning
+        logs.append(newLog) // Add to end (React Native expects chronological order)
         
         // Keep only last 1000 logs
         if logs.count > 1000 {
-            logs = Array(logs.prefix(1000))
+            logs = Array(logs.suffix(1000))
         }
         
         // Save back to UserDefaults
         if let encoded = try? JSONEncoder().encode(logs),
            let jsonString = String(data: encoded, encoding: .utf8) {
             defaults.set(jsonString, forKey: logsKey)
+            defaults.synchronize()
         }
     }
     

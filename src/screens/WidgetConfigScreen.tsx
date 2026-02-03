@@ -3,7 +3,7 @@
  * Configure up to 3 quick-log preset buttons for the iOS widget
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,9 @@ import {
   NativeModules,
   ImageBackground,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {Haptics} from '../utils/haptics';
+import {useLogStore} from '../stores/useLogStore';
 
 const {WidgetPresetsModule} = NativeModules;
 
@@ -32,12 +34,14 @@ const DEFAULT_ICONS = ['plus.circle', 'note.text', 'dumbbell', 'sparkles', 'star
 const WidgetConfigScreen: React.FC = () => {
   const [presets, setPresets] = useState<WidgetPreset[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [buckets, setBuckets] = useState<{id: string; name: string}[]>([]);
+  
+  // Get buckets directly from the store (source of truth)
+  const buckets = useLogStore(state => state.buckets);
+  const refreshBuckets = useLogStore(state => state.refreshBuckets);
 
   useEffect(() => {
     // Load saved presets from native side
     loadPresets();
-    loadBuckets();
     
     // Debug: Check if native module is available
     if (!WidgetPresetsModule) {
@@ -46,6 +50,13 @@ const WidgetConfigScreen: React.FC = () => {
       console.log('✅ WidgetPresetsModule loaded');
     }
   }, []);
+
+  // Reload buckets every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshBuckets();
+    }, [refreshBuckets])
+  );
 
   const loadPresets = async () => {
     if (!WidgetPresetsModule) {
@@ -64,18 +75,6 @@ const WidgetConfigScreen: React.FC = () => {
     } catch (error) {
       console.warn('Failed to load presets from App Group:', error);
       setPresets([]);
-    }
-  };
-
-  const loadBuckets = async () => {
-    try {
-      const {storage, STORAGE_KEYS} = await import('../storage/mmkv');
-      await storage.init();
-      const loadedBuckets = storage.getObject<{id: string; name: string}[]>(STORAGE_KEYS.BUCKETS) ?? [];
-      setBuckets(loadedBuckets);
-    } catch (error) {
-      console.warn('Failed to load buckets:', error);
-      setBuckets([]);
     }
   };
 

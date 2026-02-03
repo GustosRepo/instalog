@@ -17,10 +17,16 @@ function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
   const instalog = useLogStore(state => state.instalog);
   const refreshLogs = useLogStore(state => state.refreshLogs);
+  const refreshBuckets = useLogStore(state => state.refreshBuckets);
 
   useEffect(() => {
     // Initialize storage
-    storage.init().then(() => setIsReady(true));
+    storage.init().then(() => {
+      // Refresh store data after storage is ready
+      refreshLogs();
+      refreshBuckets();
+      setIsReady(true);
+    });
 
     // Reload logs when app comes to foreground (widget may have added logs)
     const appStateSubscription = AppState.addEventListener('change', async (nextAppState) => {
@@ -28,6 +34,7 @@ function App(): React.JSX.Element {
         // Reload from App Group when app becomes active
         await storage.reloadFromAppGroup();
         refreshLogs();
+        refreshBuckets();
       }
     });
 
@@ -55,7 +62,7 @@ function App(): React.JSX.Element {
       appStateSubscription.remove();
       subscription.remove();
     };
-  }, [instalog, refreshLogs]);
+  }, [instalog, refreshLogs, refreshBuckets]);
 
   if (!isReady) {
     return (

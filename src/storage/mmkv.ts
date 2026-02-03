@@ -99,6 +99,16 @@ class Storage {
   clearAll(): void {
     this.cache.clear();
     AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+    
+    // Also clear App Group data (widget data)
+    if (canUseAppGroup) {
+      WidgetPresetsModule.saveLogs('[]').catch((error: Error) => {
+        console.warn('Failed to clear logs from App Group', error);
+      });
+      WidgetPresetsModule.setWidgetPresets('[]').catch((error: Error) => {
+        console.warn('Failed to clear presets from App Group', error);
+      });
+    }
   }
 
   /**
@@ -110,6 +120,7 @@ class Storage {
     
     try {
       const logsJson = await WidgetPresetsModule.loadLogs();
+      console.log('[AppGroup] Loaded logs:', logsJson?.substring(0, 200));
       if (logsJson && logsJson !== '[]') {
         this.cache.set(STORAGE_KEYS.LOGS, logsJson);
         await AsyncStorage.setItem(STORAGE_KEYS.LOGS, logsJson);

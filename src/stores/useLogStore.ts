@@ -21,6 +21,7 @@ interface LogState {
   // Actions
   instalog: (options?: InstalogOptions) => LogEntry;
   refreshLogs: () => void;
+  refreshBuckets: () => void;
   assignBucket: (logId: string, bucketId: string | null) => void;
   removeLog: (logId: string) => void;
 
@@ -45,6 +46,10 @@ export const useLogStore = create<LogState>((set, get) => ({
 
   refreshLogs: () => {
     set({logs: getAllLogs()});
+  },
+
+  refreshBuckets: () => {
+    set({buckets: storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? []});
   },
 
   assignBucket: (logId: string, bucketId: string | null) => {
