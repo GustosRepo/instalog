@@ -186,54 +186,47 @@ struct InstalogWidgetEntryView : View {
     
     private var mediumWidget: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header - simple text only
             HStack {
-                Image("logonobg")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .opacity(0.7)
                 Text("Instalog")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(textColor.opacity(0.9))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(secondaryTextColor)
                 Spacer()
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Circle()
-                        .fill(accentColor.opacity(0.5))
-                        .frame(width: 5, height: 5)
+                        .fill(accentColor)
+                        .frame(width: 6, height: 6)
                     Text("\(entry.todayCount) today")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(secondaryTextColor)
                 }
             }
-            .padding(.bottom, 14)
+            
+            Spacer()
             
             // Show default Quick Log button if no presets configured
             if entry.presets.isEmpty {
-                Spacer()
                 Link(destination: URL(string: "instalog://log")!) {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 10) {
                         ZStack {
                             Circle()
                                 .fill(accentColor)
-                                .frame(width: 72, height: 72)
+                                .frame(width: 64, height: 64)
                             
                             Image(systemName: "plus")
-                                .font(.system(size: 36, weight: .semibold))
+                                .font(.system(size: 30, weight: .semibold))
                                 .foregroundColor(.white)
                         }
                         
                         Text("Quick Log")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(textColor)
+                        
+                        Text("Tap to log • Configure in Settings")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(secondaryTextColor)
                     }
                 }
-                
-                Text("Tap to log • Configure in Settings")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(secondaryTextColor)
-                    .padding(.top, 6)
-                
-                Spacer()
             } else {
                 // Preset buttons in a row
                 HStack(spacing: 12) {
@@ -242,8 +235,10 @@ struct InstalogWidgetEntryView : View {
                     }
                 }
             }
+            
+            Spacer()
         }
-        .padding(14)
+        .padding(16)
     }
     
     // MARK: - Preset Button
