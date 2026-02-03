@@ -6,7 +6,7 @@
  * Includes bucket management
  */
 
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,10 @@ import {
   ImageBackground,
 } from 'react-native';
 import {useLogStore} from '../stores/useLogStore';
+import {useSubscriptionStore, FREE_BUCKET_LIMIT} from '../stores/useSubscriptionStore';
+import {useHintsStore} from '../stores/useHintsStore';
 import {LogEntry, formatTime} from '../models/types';
+import {useNavigation} from '@react-navigation/native';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -151,19 +154,28 @@ const BucketManager: React.FC<{
   visible: boolean;
   onClose: () => void;
 }> = ({visible, onClose}) => {
+  const navigation = useNavigation();
   const buckets = useLogStore(state => state.buckets);
   const addBucket = useLogStore(state => state.addBucket);
   const removeBucket = useLogStore(state => state.removeBucket);
+  const isPro = useSubscriptionStore(state => state.isPro);
   const [newBucketName, setNewBucketName] = useState('');
 
   const handleAddBucket = () => {
     const trimmed = newBucketName.trim();
-    if (trimmed) {
-      addBucket(trimmed);
-      setNewBucketName('');
-      Vibration.vibrate(50);
-      Keyboard.dismiss();
+    if (!trimmed) return;
+    
+    // Check bucket limit for free users
+    if (!isPro && buckets.length >= FREE_BUCKET_LIMIT) {
+      onClose();
+      (navigation as any).navigate('Paywall');
+      return;
     }
+    
+    addBucket(trimmed);
+    setNewBucketName('');
+    Vibration.vibrate(50);
+    Keyboard.dismiss();
   };
 
   return (
@@ -338,13 +350,39 @@ const WrapUpScreen: React.FC = () => {
   const getUnsortedLogs = useLogStore(state => state.getUnsortedLogs);
   const assignBucket = useLogStore(state => state.assignBucket);
   const buckets = useLogStore(state => state.buckets);
+  const {hasSeenWrapUpOverlay, markWrapUpOverlaySeen} = useHintsStore();
 
   const unsortedLogs = getUnsortedLogs();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBucketManager, setShowBucketManager] = useState(false);
   const [showBucketSelector, setShowBucketSelector] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showOverlayHint, setShowOverlayHint] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // Show overlay hint on first visit
+  useEffect(() => {
+    if (!hasSeenWrapUpOverlay && unsortedLogs.length > 0) {
+      setTimeout(() => {
+        setShowOverlayHint(true);
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }, 800);
+    }
+  }, [hasSeenWrapUpOverlay, unsortedLogs.length]);
+
+  const dismissOverlayHint = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setShowOverlayHint(false));
+    markWrapUpOverlaySeen();
+  };
 
   // Sort by oldest first for wrap-up flow
   const sortedLogs = [...unsortedLogs].sort(
@@ -489,6 +527,38 @@ const WrapUpScreen: React.FC = () => {
           <Text style={{color: '#EDEEF0', fontSize: 16, fontWeight: '600'}}>
             {toastMessage}
           </Text>
+        </Animated.View>
+      )}
+
+      {/* Overlay hint */}
+      {showOverlayHint && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            opacity: overlayOpacity,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 40,
+          }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={dismissOverlayHint}
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '600', marginBottom: 12, textAlign: 'center'}}>
+              Swipe logs into buckets
+            </Text>
+            <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center', lineHeight: 24}}>
+              Swipe left to archive{'\n'}Swipe right to organize
+            </Text>
+            <Text style={{color: '#6E6AF2', fontSize: 14, marginTop: 32}}>
+              Tap anywhere to continue
+            </Text>
+          </TouchableOpacity>
         </Animated.View>
       )}
       </ImageBackground>

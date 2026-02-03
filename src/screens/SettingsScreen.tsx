@@ -1,6 +1,6 @@
 /**
  * Settings Screen
- * App info, data management, export functionality
+ * App info, data management, export functionality, subscription
  */
 
 import React, {useState} from 'react';
@@ -14,16 +14,26 @@ import {
   Platform,
   Image,
   ImageBackground,
+  Linking,
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
+import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
+import {useHintsStore} from '../stores/useHintsStore';
 import {storage} from '../storage/mmkv';
 import {Haptics} from '../utils/haptics';
 
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const logs = useLogStore(state => state.logs);
   const buckets = useLogStore(state => state.buckets);
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
+  
+  const {isPro, totalLogCount, logsRemaining, restorePurchases} = useSubscriptionStore();
+  const {hasSeenWidgetHint, markWidgetHintSeen} = useHintsStore();
+  
+  const showWidgetHint = logs.length >= 3 && !hasSeenWidgetHint;
 
   const handleExportLogs = async () => {
     try {
@@ -84,8 +94,108 @@ const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={{flex: 1}} contentContainerStyle={{paddingHorizontal: 24}}>
+        {/* Subscription Section */}
+        <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+          <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16}}>
+            <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600'}}>
+              Subscription
+            </Text>
+            {isPro && (
+              <View style={{backgroundColor: '#6E6AF2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6}}>
+                <Text style={{color: '#FFFFFF', fontSize: 12, fontWeight: '700'}}>PRO</Text>
+              </View>
+            )}
+          </View>
+          
+          {isPro ? (
+            <>
+              <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 16}}>
+                You have unlimited logs and sync across all your devices.
+              </Text>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                style={{paddingVertical: 12}}
+              >
+                <Text style={{color: '#6E6AF2', fontSize: 15, fontWeight: '500'}}>
+                  Manage Subscription
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 8}}>
+                {logsRemaining > 0 
+                  ? `You have ${logsRemaining} free logs remaining.`
+                  : 'You\'ve reached the free limit.'
+                }
+              </Text>
+              <Text style={{color: '#6B7280', fontSize: 13, marginBottom: 16}}>
+                {totalLogCount} of {FREE_LOG_LIMIT} logs used
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Paywall')}
+                style={{
+                  backgroundColor: '#6E6AF2',
+                  paddingVertical: 14,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>
+                  Upgrade to Pro
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  Haptics.light();
+                  const restored = await restorePurchases();
+                  if (!restored) {
+                    Alert.alert('No Subscription Found', 'We couldn\'t find an active subscription for your Apple ID.');
+                  }
+                }}
+                style={{alignItems: 'center', paddingVertical: 8}}
+              >
+                <Text style={{color: '#9AA0A6', fontSize: 14}}>
+                  Restore Purchases
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* About Section with Logo */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+          {/* Widget hint */}
+          {showWidgetHint && (
+            <TouchableOpacity
+              onPress={() => {
+                markWidgetHintSeen();
+                navigation.navigate('WidgetConfig');
+                Haptics.light();
+              }}
+              style={{
+                backgroundColor: '#6E6AF2',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <View style={{flex: 1}}>
+                <Text style={{color: '#FFFFFF', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
+                  ✨ Customize your widgets
+                </Text>
+                <Text style={{color: '#FFFFFF', opacity: 0.9, fontSize: 13}}>
+                  Add quick-log buttons to your home screen
+                </Text>
+              </View>
+              <Text style={{color: '#FFFFFF', fontSize: 20}}>→</Text>
+            </TouchableOpacity>
+          )}
+          
           <View style={{alignItems: 'center', marginBottom: 24}}>
             <Image
               source={require('../../assets/logonobg.png')}

@@ -6,18 +6,24 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {StatusBar, View, Text, Linking, Platform, AppState} from 'react-native';
+import {StatusBar, View, Text, Linking, Platform, AppState, NativeModules} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import {storage} from './src/storage/mmkv';
 import {useLogStore} from './src/stores/useLogStore';
+import {useSubscriptionStore} from './src/stores/useSubscriptionStore';
+import {useHintsStore} from './src/stores/useHintsStore';
+
+const {StoreKitModule} = NativeModules;
 
 function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
   const instalog = useLogStore(state => state.instalog);
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
+  const refreshSubscription = useSubscriptionStore(state => state.refreshSubscription);
+  const loadHints = useHintsStore(state => state.loadHints);
 
   useEffect(() => {
     // Initialize storage
@@ -25,8 +31,17 @@ function App(): React.JSX.Element {
       // Refresh store data after storage is ready
       refreshLogs();
       refreshBuckets();
+      refreshSubscription();
+      loadHints();
       setIsReady(true);
     });
+    
+    // TODO: Start StoreKit transaction listener once native module is properly configured
+    // if (Platform.OS === 'ios' && StoreKitModule?.startTransactionListener) {
+    //   StoreKitModule.startTransactionListener()
+    //     .then(() => console.log('StoreKit transaction listener started'))
+    //     .catch((error: Error) => console.warn('Failed to start StoreKit listener:', error));
+    // }
 
     // Reload logs when app comes to foreground (widget may have added logs)
     const appStateSubscription = AppState.addEventListener('change', async (nextAppState) => {
@@ -35,6 +50,7 @@ function App(): React.JSX.Element {
         await storage.reloadFromAppGroup();
         refreshLogs();
         refreshBuckets();
+        refreshSubscription();
       }
     });
 

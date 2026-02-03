@@ -15,9 +15,10 @@ import {
   NativeModules,
   ImageBackground,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Haptics} from '../utils/haptics';
 import {useLogStore} from '../stores/useLogStore';
+import {useSubscriptionStore, FREE_WIDGET_PRESET_LIMIT} from '../stores/useSubscriptionStore';
 
 const {WidgetPresetsModule} = NativeModules;
 
@@ -32,12 +33,14 @@ interface WidgetPreset {
 const DEFAULT_ICONS = ['plus.circle', 'note.text', 'dumbbell', 'sparkles', 'star.fill', 'drop.fill'];
 
 const WidgetConfigScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [presets, setPresets] = useState<WidgetPreset[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Get buckets directly from the store (source of truth)
   const buckets = useLogStore(state => state.buckets);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
+  const isPro = useSubscriptionStore(state => state.isPro);
 
   useEffect(() => {
     // Load saved presets from native side
@@ -95,8 +98,15 @@ const WidgetConfigScreen: React.FC = () => {
   };
 
   const addPreset = () => {
-    if (presets.length >= 3) {
-      Alert.alert('Limit Reached', 'You can have up to 3 widget buttons');
+    // Check limit based on subscription tier
+    const limit = isPro ? 10 : FREE_WIDGET_PRESET_LIMIT; // Max 10 even for Pro (UI constraint)
+    
+    if (presets.length >= limit) {
+      if (!isPro) {
+        (navigation as any).navigate('Paywall');
+        return;
+      }
+      Alert.alert('Limit Reached', 'Maximum widget presets reached');
       return;
     }
 
