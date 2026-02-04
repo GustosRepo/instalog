@@ -14,6 +14,8 @@ import {
   Keyboard,
   ImageBackground,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
@@ -98,15 +100,17 @@ const InstalogScreen: React.FC = () => {
       }, 500);
     }
 
-    // Clear input
+    // Clear input and dismiss keyboard
     setText('');
-
-    // Keep keyboard open for next entry
-    inputRef.current?.focus();
+    Keyboard.dismiss();
   }, [text, instalog, canCreateLog, navigation, incrementLogCount, hasSeenWrapUpToast, markWrapUpToastSeen]);
 
   return (
-    <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
+    <KeyboardAvoidingView 
+      style={{flex: 1, backgroundColor: '#0B0D10'}}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <ImageBackground
         source={require('../../assets/logonobg.png')}
         style={{flex: 1}}
@@ -162,7 +166,7 @@ const InstalogScreen: React.FC = () => {
             paddingVertical: 20,
           }}
           returnKeyType="done"
-          blurOnSubmit={false}
+          blurOnSubmit={true}
           onSubmitEditing={handleLog}
           accessible={true}
           accessibilityLabel="Log entry text field"
@@ -203,7 +207,7 @@ const InstalogScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       </ImageBackground>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -13,12 +13,40 @@ class StoreKitModule: NSObject {
   
   // MARK: - Product IDs
   private let productIds = [
-    "pro_monthly",
-    "pro_yearly"
+    "com.instalog.pro.monthly",
+    "com.instalog.pro.yearly"
   ]
   
   // MARK: - Cached Products
   private var products: [Product] = []
+  
+  // MARK: - Mock Data (for development/testing)
+  private var useMockData: Bool {
+    #if DEBUG
+    return products.isEmpty
+    #else
+    return false
+    #endif
+  }
+  
+  private let mockProducts: [[String: Any]] = [
+    [
+      "id": "com.instalog.pro.monthly",
+      "displayName": "Instalog Pro Monthly",
+      "description": "Unlimited logs and widget presets",
+      "price": "3.99",
+      "displayPrice": "$3.99",
+      "type": "subscription"
+    ],
+    [
+      "id": "com.instalog.pro.yearly",
+      "displayName": "Instalog Pro Yearly",
+      "description": "Unlimited logs and widget presets - Save 37%",
+      "price": "29.99",
+      "displayPrice": "$29.99",
+      "type": "subscription"
+    ]
+  ]
   
   // MARK: - React Native Bridge Methods
   
@@ -29,6 +57,15 @@ class StoreKitModule: NSObject {
       do {
         let products = try await Product.products(for: productIds)
         self.products = products
+        
+        // If no products found (not set up in App Store Connect yet), return mock data in debug
+        if products.isEmpty {
+          #if DEBUG
+          print("[StoreKitModule] No products found in App Store, returning mock data")
+          resolver(mockProducts)
+          return
+          #endif
+        }
         
         let productData = products.map { product -> [String: Any] in
           return [
@@ -43,7 +80,12 @@ class StoreKitModule: NSObject {
         
         resolver(productData)
       } catch {
+        #if DEBUG
+        print("[StoreKitModule] Error loading products: \(error), returning mock data")
+        resolver(mockProducts)
+        #else
         rejecter("PRODUCTS_ERROR", "Failed to load products: \(error.localizedDescription)", error)
+        #endif
       }
     }
   }
@@ -53,6 +95,20 @@ class StoreKitModule: NSObject {
   func purchase(_ productId: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     Task {
       do {
+        // In debug mode with no real products, simulate a successful purchase
+        #if DEBUG
+        if useMockData {
+          print("[StoreKitModule] Mock purchase for: \(productId)")
+          savePurchaseStatus(true)
+          resolver([
+            "success": true,
+            "productId": productId,
+            "transactionId": "mock_\(UUID().uuidString)"
+          ])
+          return
+        }
+        #endif
+        
         // Find the product
         guard let product = products.first(where: { $0.id == productId }) else {
           // Try loading products first

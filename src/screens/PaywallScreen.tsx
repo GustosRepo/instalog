@@ -8,11 +8,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Linking,
   Alert,
+  ScrollView,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
 import {Haptics} from '../utils/haptics';
@@ -65,22 +66,6 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
     const productId = selectedPlan === 'monthly' ? PRODUCT_IDS.monthly : PRODUCT_IDS.yearly;
     
     try {
-      // DEV: Simulate purchase for testing until StoreKit is configured
-      if (__DEV__) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPro(true);
-        markPaywallSeen();
-        Haptics.success();
-        
-        Alert.alert(
-          'Welcome to Pro',
-          'You now have unlimited logs and sync across all your devices.',
-          [{text: 'Continue', onPress: () => onDismiss?.() || navigation.goBack()}]
-        );
-        setIsLoading(false);
-        return;
-      }
-      
       const success = await purchase(productId);
       
       if (success) {
@@ -133,22 +118,26 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}}>
-      <View style={{flex: 1, paddingHorizontal: 24}}>
+      <ScrollView 
+        style={{flex: 1}} 
+        contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 20}}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Dismiss button */}
         {showDismiss && !atLimit && (
           <TouchableOpacity
             onPress={handleDismiss}
-            style={{alignSelf: 'flex-end', paddingVertical: 16}}
+            style={{alignSelf: 'flex-end', paddingVertical: 12}}
           >
             <Text style={{color: '#9AA0A6', fontSize: 16}}>Maybe later</Text>
           </TouchableOpacity>
         )}
         
         {/* Spacer */}
-        <View style={{flex: atLimit ? 0.3 : 0.15}} />
+        {!showDismiss && <View style={{height: 20}} />}
         
         {/* Icon */}
-        <View style={{alignItems: 'center', marginBottom: 24}}>
+        <View style={{alignItems: 'center', marginBottom: 20}}>
           <View style={{
             width: 80,
             height: 80,
@@ -167,7 +156,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           fontSize: 32,
           fontWeight: '700',
           textAlign: 'center',
-          marginBottom: 12,
+          marginBottom: 10,
         }}>
           {atLimit ? 'You\'ve reached the limit' : 'Keep the momentum going.'}
         </Text>
@@ -178,7 +167,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           fontSize: 17,
           textAlign: 'center',
           lineHeight: 24,
-          marginBottom: 32,
+          marginBottom: 24,
           paddingHorizontal: 16,
         }}>
           {atLimit 
@@ -188,7 +177,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         </Text>
         
         {/* Benefits */}
-        <View style={{marginBottom: 32}}>
+        <View style={{marginBottom: 24}}>
           {[
             'Unlimited logs — never stop capturing what matters',
             'Unlimited buckets — organize however you want',
@@ -196,7 +185,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             'Seamless sync — pick up where you left off on any device',
             'Your data, your control — export anytime, no lock-in',
           ].map((benefit, index) => (
-            <View key={index} style={{flexDirection: 'row', marginBottom: 16, paddingHorizontal: 8}}>
+            <View key={index} style={{flexDirection: 'row', marginBottom: 12, paddingHorizontal: 8}}>
               <Text style={{color: '#6E6AF2', fontSize: 16, marginRight: 12}}>✓</Text>
               <Text style={{color: '#EDEEF0', fontSize: 15, flex: 1, lineHeight: 22}}>
                 {benefit}
@@ -204,9 +193,6 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             </View>
           ))}
         </View>
-        
-        {/* Spacer */}
-        <View style={{flex: 1}} />
         
         {/* Pricing Options */}
         <View style={{marginBottom: 20}}>
@@ -349,7 +335,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             Privacy
           </Text>
         </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

@@ -171,7 +171,7 @@ const SettingsScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => {
                 markWidgetHintSeen();
-                navigation.navigate('WidgetConfig');
+                navigation.navigate('Widget');
                 Haptics.light();
               }}
               style={{
