@@ -25,10 +25,20 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         let presets = SharedStore.loadPresets()
         let todayCount = SharedStore.getTodayLogCount()
-        let entry = SimpleEntry(date: Date(), presets: presets, todayCount: todayCount)
+        let now = Date()
+        let entry = SimpleEntry(date: now, presets: presets, todayCount: todayCount)
         
-        // Refresh every hour
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
+        // Calculate next midnight to refresh the count
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
+        let midnight = calendar.startOfDay(for: tomorrow)
+        
+        // Also refresh every 15 minutes to keep count updated
+        let fifteenMinutes = calendar.date(byAdding: .minute, value: 15, to: now)!
+        
+        // Use whichever comes first
+        let nextUpdate = min(midnight, fifteenMinutes)
+        
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
     }
