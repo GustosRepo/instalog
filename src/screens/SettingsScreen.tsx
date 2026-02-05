@@ -274,10 +274,26 @@ const SettingsScreen: React.FC = () => {
 
         {/* Footer */}
         <View style={{paddingVertical: 32, alignItems: 'center'}}>
-          <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', lineHeight: 20}}>
+          <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 16}}>
             Made with focus{'\n'}
             Zero analytics • No cloud • Your data stays yours
           </Text>
+          
+          {/* Legal Links - Required for App Store */}
+          <View style={{flexDirection: 'row', gap: 16}}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://instalog.app/privacy')}
+              accessible={true}
+              accessibilityRole="link">
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://instalog.app/terms')}
+              accessible={true}
+              accessibilityRole="link">
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>Terms of Service</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
       </ImageBackground>

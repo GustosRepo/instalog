@@ -7,8 +7,8 @@
     "version": "1.0.0",
     "ios": {
       "bundleIdentifier": "com.instalog.app",
-      "buildNumber": "4",
-      "supportsTablet": false
+      "buildNumber": "6",
+      "supportsTablet": true
     },
     "plugins": [],
     "extra": {
