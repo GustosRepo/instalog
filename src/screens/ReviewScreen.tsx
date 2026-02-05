@@ -15,6 +15,8 @@ import {
   Modal,
   ImageBackground,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {useLogStore} from '../stores/useLogStore';
 import {LogEntry, formatTime} from '../models/types';
@@ -406,7 +408,9 @@ const ReviewScreen: React.FC = () => {
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
+    <KeyboardAvoidingView 
+      style={{flex: 1, backgroundColor: '#0B0D10'}}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ImageBackground
         source={require('../../assets/logonobg.png')}
         style={{flex: 1}}
@@ -422,6 +426,7 @@ const ReviewScreen: React.FC = () => {
         style={{flex: 1}}
         contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 32}}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -434,7 +439,7 @@ const ReviewScreen: React.FC = () => {
         <SearchSection logs={allLogs} />
       </ScrollView>
       </ImageBackground>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -20,6 +20,8 @@ import {
   ScrollView,
   Keyboard,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {useLogStore} from '../stores/useLogStore';
 import {useSubscriptionStore, FREE_BUCKET_LIMIT} from '../stores/useSubscriptionStore';
@@ -184,7 +186,9 @@ const BucketManager: React.FC<{
       animationType="slide"
       transparent
       onRequestClose={onClose}>
-      <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)'}}>
         <View style={{backgroundColor: '#141821', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32}}>
           {/* Header */}
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(154, 160, 166, 0.1)'}}>
@@ -234,7 +238,7 @@ const BucketManager: React.FC<{
           </View>
 
           {/* Bucket list */}
-          <ScrollView style={{maxHeight: 320, paddingHorizontal: 24}}>
+          <ScrollView style={{maxHeight: 320, paddingHorizontal: 24}} keyboardShouldPersistTaps="handled">
             {buckets.length === 0 ? (
               <View style={{paddingVertical: 32}}>
                 <Text style={{color: '#9AA0A6', textAlign: 'center'}}>
@@ -265,7 +269,7 @@ const BucketManager: React.FC<{
             )}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

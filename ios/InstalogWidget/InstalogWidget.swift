@@ -58,15 +58,9 @@ struct InstalogWidgetEntryView : View {
     var body: some View {
         switch family {
         case .systemSmall:
-            ZStack {
-                backgroundColor.ignoresSafeArea()
-                smallWidget
-            }
+            smallWidget
         case .systemMedium:
-            ZStack {
-                backgroundColor.ignoresSafeArea()
-                mediumWidget
-            }
+            mediumWidget
         case .accessoryCircular:
             lockScreenCircular
         case .accessoryRectangular:
@@ -74,10 +68,7 @@ struct InstalogWidgetEntryView : View {
         case .accessoryInline:
             lockScreenInline
         default:
-            ZStack {
-                backgroundColor.ignoresSafeArea()
-                mediumWidget
-            }
+            mediumWidget
         }
     }
     
@@ -395,13 +386,15 @@ struct InstalogWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             if #available(iOS 17.0, *) {
                 InstalogWidgetEntryView(entry: entry)
-                    .containerBackground(InstalogWidget.backgroundColor, for: .widget)
+                    .containerBackground(for: .widget) {
+                        Color(red: 18/255, green: 18/255, blue: 20/255)
+                    }
             } else {
                 InstalogWidgetEntryView(entry: entry)
-                    .padding()
-                    .background(InstalogWidget.backgroundColor)
+                    .background(Color(red: 18/255, green: 18/255, blue: 20/255))
             }
         }
+        .contentMarginsDisabled()
         .configurationDisplayName("Instalog")
         .description("Quick log buttons for instant logging")
         .supportedFamilies([
