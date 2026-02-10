@@ -29,10 +29,31 @@ class SharedStore {
     private static let appGroupIdentifier = "group.com.instalog.shared"
     private static let presetsKey = "@instalog/presets"
     private static let logsKey = "@instalog/logs"
+    private static let isProKey = "@instalog/isPro"
+    private static let totalLogCountKey = "@instalog/totalLogCount"
+    private static let freeLogLimitKey = "@instalog/freeLogLimit"
     
     // MARK: - UserDefaults
     private static var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupIdentifier)
+    }
+    
+    // MARK: - Paywall Check
+    
+    /// Check if user can create a log (paywall enforcement)
+    static func canCreateLog() -> Bool {
+        guard let defaults = userDefaults else { return false }
+        
+        let isPro = defaults.bool(forKey: isProKey)
+        if isPro { return true }
+        
+        let totalLogCount = defaults.integer(forKey: totalLogCountKey)
+        let freeLogLimit = defaults.integer(forKey: freeLogLimitKey)
+        
+        // Default limit if not set
+        let limit = freeLogLimit > 0 ? freeLogLimit : 25
+        
+        return totalLogCount < limit
     }
     
     // MARK: - Presets

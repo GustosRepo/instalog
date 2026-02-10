@@ -27,4 +27,11 @@ RCT_EXTERN_METHOD(loadLogs:(RCTPromiseResolveBlock)resolver
 RCT_EXTERN_METHOD(loadPresets:(RCTPromiseResolveBlock)resolver
                   rejecter:(RCTPromiseRejectBlock)rejecter)
 
+// Expose syncSubscriptionStatus method to JavaScript
+RCT_EXTERN_METHOD(syncSubscriptionStatus:(BOOL)isPro
+                  totalLogCount:(NSInteger)totalLogCount
+                  freeLogLimit:(NSInteger)freeLogLimit
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
 @end

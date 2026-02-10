@@ -29,6 +29,13 @@ struct QuickLogIntent: AppIntent {
     
     func perform() async throws -> some IntentResult {
         
+        // Check paywall first
+        guard SharedStore.canCreateLog() else {
+            // User has hit the free limit - don't log
+            // The widget tap will just not create a log
+            return .result()
+        }
+        
         // 1. Save log entry to App Group
         SharedStore.saveLog(text: text, bucketId: bucketId)
         

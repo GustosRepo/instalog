@@ -100,6 +100,24 @@ class WidgetPresetsModule: NSObject {
     }
   }
   
+  @objc
+  func syncSubscriptionStatus(_ isPro: Bool, totalLogCount: Int, freeLogLimit: Int, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+    guard let userDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+      rejecter("APP_GROUP_ERROR", "Failed to access App Group UserDefaults", nil)
+      return
+    }
+    
+    userDefaults.set(isPro, forKey: "@instalog/isPro")
+    userDefaults.set(totalLogCount, forKey: "@instalog/totalLogCount")
+    userDefaults.set(freeLogLimit, forKey: "@instalog/freeLogLimit")
+    userDefaults.synchronize()
+    
+    // Reload widgets
+    WidgetCenter.shared.reloadAllTimelines()
+    
+    resolver(["success": true])
+  }
+  
   // MARK: - React Native Configuration
   
   @objc

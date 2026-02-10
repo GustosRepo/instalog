@@ -71,7 +71,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F318724D2F2DADA5007CAEEE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		F318724D2F2DADA5007CAEEE /* Exceptions for "InstalogWidget" folder in "InstalogWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -81,7 +81,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F318723F2F2DADA4007CAEEE /* InstalogWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (F318724D2F2DADA5007CAEEE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = InstalogWidget; sourceTree = "<group>"; };
+		F318723F2F2DADA4007CAEEE /* InstalogWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F318724D2F2DADA5007CAEEE /* Exceptions for "InstalogWidget" folder in "InstalogWidgetExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = InstalogWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */

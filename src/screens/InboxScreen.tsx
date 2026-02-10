@@ -153,16 +153,22 @@ const InboxScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32}}>
-      <Image
-        source={require('../../assets/logonobg.png')}
-        style={{width: 200, height: 200, opacity: 0.25, marginBottom: 32}}
-        resizeMode="contain"
-      />
+      <View style={{
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(110, 106, 242, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+      }}>
+        <Text style={{fontSize: 32}}>📥</Text>
+      </View>
       <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '600', marginBottom: 8}}>
         No logs yet
       </Text>
-      <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center'}}>
-        Tap "Instalog" to capture your first moment
+      <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center', lineHeight: 24}}>
+        Tap the + tab to capture your first moment
       </Text>
     </View>
   );

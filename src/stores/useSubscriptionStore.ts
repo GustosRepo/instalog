@@ -62,6 +62,19 @@ const SUB_KEYS = {
   PAYWALL_SEEN: '@instalog/paywall_seen',
 } as const;
 
+const {WidgetPresetsModule} = NativeModules;
+
+// Sync subscription status to widget (for paywall enforcement)
+const syncToWidget = async (isPro: boolean, totalLogCount: number) => {
+  if (Platform.OS === 'ios' && WidgetPresetsModule?.syncSubscriptionStatus) {
+    try {
+      await WidgetPresetsModule.syncSubscriptionStatus(isPro, totalLogCount, FREE_LOG_LIMIT);
+    } catch (error) {
+      console.warn('Failed to sync subscription to widget:', error);
+    }
+  }
+};
+
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   tier: 'free',
   isPro: false,
@@ -131,6 +144,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       shouldShowBadge: !isPro && totalLogCount >= BADGE_THRESHOLD,
       logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - totalLogCount),
     });
+    
+    // Sync to widget for paywall enforcement
+    syncToWidget(isPro, totalLogCount);
   },
   
   loadProducts: async () => {
@@ -181,6 +197,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       shouldShowBadge: !isPro && newCount >= BADGE_THRESHOLD,
       logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - newCount),
     });
+    
+    // Sync to widget for paywall enforcement
+    syncToWidget(isPro, newCount);
   },
   
   markSoftPromptSeen: () => {
@@ -206,6 +225,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       shouldShowBadge: false,
       logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - state.totalLogCount),
     });
+    
+    // Sync to widget for paywall enforcement
+    syncToWidget(isPro, state.totalLogCount);
   },
   
   restorePurchases: async () => {

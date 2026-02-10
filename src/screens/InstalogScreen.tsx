@@ -16,6 +16,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  Easing,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
@@ -29,6 +30,12 @@ const InstalogScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showIdleHint, setShowIdleHint] = useState(false);
+  
+  // Micro-interaction animations
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const successScale = useRef(new Animated.Value(0)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const instalog = useLogStore(state => state.instalog);
   const {canCreateLog, logsRemaining, isPro, incrementLogCount} = useSubscriptionStore();
@@ -76,7 +83,7 @@ const InstalogScreen: React.FC = () => {
 
   const handleLog = useCallback(() => {
     const trimmedText = text.trim();
-    if (!trimmedText) return;
+    // Allow empty logs - just a timestamp tap
 
     // Check if user can create logs
     if (!canCreateLog) {
@@ -85,12 +92,49 @@ const InstalogScreen: React.FC = () => {
       return;
     }
 
-    // Save the log
-    instalog({text: trimmedText});
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.spring(buttonScale, {
+        toValue: 1,
+        friction: 3,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Save the log (text can be empty)
+    instalog({text: trimmedText || null});
     incrementLogCount();
 
     // Success haptic feedback
     Haptics.success();
+    
+    // Show success checkmark animation
+    setShowSuccess(true);
+    successScale.setValue(0);
+    successOpacity.setValue(1);
+    
+    Animated.parallel([
+      Animated.spring(successScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(successOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => setShowSuccess(false));
 
     // Show Wrap Up toast after first log
     if (!hasSeenWrapUpToast) {
@@ -103,7 +147,7 @@ const InstalogScreen: React.FC = () => {
     // Clear input and dismiss keyboard
     setText('');
     Keyboard.dismiss();
-  }, [text, instalog, canCreateLog, navigation, incrementLogCount, hasSeenWrapUpToast, markWrapUpToastSeen]);
+  }, [text, instalog, canCreateLog, navigation, incrementLogCount, hasSeenWrapUpToast, markWrapUpToastSeen, buttonScale, successScale, successOpacity]);
 
   return (
     <KeyboardAvoidingView 
@@ -181,30 +225,54 @@ const InstalogScreen: React.FC = () => {
 
       {/* Fixed bottom action */}
       <View style={{paddingHorizontal: 24, paddingBottom: 48}}>
-        <TouchableOpacity
-          onPress={handleLog}
-          disabled={!text.trim()}
-          style={{
-            backgroundColor: text.trim() ? '#6E6AF2' : '#141821',
-            paddingVertical: 18,
-            borderRadius: 16,
-          }}
-          activeOpacity={0.8}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Save log entry"
-          accessibilityHint="Saves your log and clears the text field"
-          accessibilityState={{disabled: !text.trim()}}>
-          <Text
-            style={{
-              color: text.trim() ? '#EDEEF0' : '#9AA0A6',
-              textAlign: 'center',
-              fontSize: 18,
-              fontWeight: '600',
+        {/* Success indicator */}
+        {showSuccess && (
+          <Animated.View style={{
+            position: 'absolute',
+            top: -60,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            opacity: successOpacity,
+            transform: [{scale: successScale}],
+          }}>
+            <View style={{
+              backgroundColor: '#22C55E',
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-            Log
-          </Text>
-        </TouchableOpacity>
+              <Text style={{color: '#FFFFFF', fontSize: 24}}>✓</Text>
+            </View>
+          </Animated.View>
+        )}
+        
+        <Animated.View style={{transform: [{scale: buttonScale}]}}>
+          <TouchableOpacity
+            onPress={handleLog}
+            style={{
+              backgroundColor: '#6E6AF2',
+              paddingVertical: 18,
+              borderRadius: 16,
+            }}
+            activeOpacity={0.8}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Save log entry"
+            accessibilityHint="Saves your log and clears the text field">
+            <Text
+              style={{
+                color: '#EDEEF0',
+                textAlign: 'center',
+                fontSize: 18,
+                fontWeight: '600',
+              }}>
+              Log
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
       </ImageBackground>
     </KeyboardAvoidingView>

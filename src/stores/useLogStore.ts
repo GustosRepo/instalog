@@ -36,7 +36,11 @@ interface LogState {
 
 export const useLogStore = create<LogState>((set, get) => ({
   logs: getAllLogs(),
-  buckets: storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? [],
+  buckets: (() => {
+    const buckets = storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? [];
+    console.log('[Store Init] Loaded buckets:', buckets);
+    return buckets;
+  })(),
 
   instalog: (options?: InstalogOptions) => {
     const entry = coreInstalog(options);
@@ -49,7 +53,9 @@ export const useLogStore = create<LogState>((set, get) => ({
   },
 
   refreshBuckets: () => {
-    set({buckets: storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? []});
+    const buckets = storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? [];
+    console.log('[Store] Refreshing buckets:', buckets);
+    set({buckets});
   },
 
   assignBucket: (logId: string, bucketId: string | null) => {
@@ -76,6 +82,7 @@ export const useLogStore = create<LogState>((set, get) => ({
       name,
     };
     const updatedBuckets = [...get().buckets, bucket];
+    console.log('[Store] Adding bucket:', bucket, 'Total buckets:', updatedBuckets.length);
     storage.setObject(STORAGE_KEYS.BUCKETS, updatedBuckets);
     set({buckets: updatedBuckets});
     return bucket;

@@ -44,6 +44,7 @@ class Storage {
 
     const keys = Object.values(STORAGE_KEYS);
     const pairs = await AsyncStorage.multiGet(keys);
+    console.log('[Storage] Init - loading from AsyncStorage:', pairs);
     pairs.forEach(([key, value]) => {
       if (value && !this.cache.has(key)) {
         this.cache.set(key, value);
@@ -58,7 +59,10 @@ class Storage {
 
   setString(key: string, value: string): void {
     this.cache.set(key, value);
-    AsyncStorage.setItem(key, value);
+    // Fire and forget is acceptable - AsyncStorage queues writes
+    AsyncStorage.setItem(key, value).catch(err => 
+      console.warn(`Failed to save ${key}`, err)
+    );
     
     // Also save logs to App Group for widget access
     if (canUseAppGroup && key === STORAGE_KEYS.LOGS) {
@@ -70,24 +74,43 @@ class Storage {
 
   getObject<T>(key: string): T | null {
     const value = this.cache.get(key);
-    if (!value) return null;
+    if (!value) {
+      console.log(`[Storage] getObject ${key}: null`);
+      return null;
+    }
     try {
-      return JSON.parse(value) as T;
+      const parsed = JSON.parse(value) as T;
+      if (key === STORAGE_KEYS.BUCKETS) {
+        console.log(`[Storage] getObject ${key}:`, parsed);
+      }
+      return parsed;
     } catch {
+      console.warn(`[Storage] Failed to parse ${key}`);
       return null;
     }
   }
 
   setObject<T>(key: string, value: T): void {
     const json = JSON.stringify(value);
+    if (key === STORAGE_KEYS.BUCKETS) {
+      console.log(`[Storage] setObject ${key}:`, value);
+    }
     this.cache.set(key, json);
-    AsyncStorage.setItem(key, json);
+    // Fire and forget is acceptable - AsyncStorage queues writes
+    AsyncStorage.setItem(key, json).catch(err => 
+      console.warn(`Failed to save ${key}`, err)
+    );
     
     // Also save logs to App Group for widget access
     if (canUseAppGroup && key === STORAGE_KEYS.LOGS) {
-      WidgetPresetsModule.saveLogs(json).catch((error: Error) => {
-        console.warn('Failed to save logs to App Group', error);
-      });
+      console.log('[Storage] Saving logs to App Group, count:', Array.isArray(value) ? (value as any[]).length : 'N/A');
+      WidgetPresetsModule.saveLogs(json)
+        .then(() => {
+          console.log('[Storage] ✅ Logs saved to App Group successfully');
+        })
+        .catch((error: Error) => {
+          console.warn('[Storage] ❌ Failed to save logs to App Group', error);
+        });
     }
   }
 

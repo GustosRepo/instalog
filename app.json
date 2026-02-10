@@ -7,7 +7,7 @@
     "version": "1.0.0",
     "ios": {
       "bundleIdentifier": "com.instalog.app",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": true
     },
     "plugins": [],
@@ -15,6 +15,9 @@
       "eas": {
         "projectId": "74a56afa-da19-49f5-99ab-0727884ec624"
       }
+    },
+    "android": {
+      "package": "com.instalog.app"
     }
   }
 }

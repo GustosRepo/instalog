@@ -85,199 +85,147 @@ struct InstalogWidgetEntryView : View {
     // MARK: - Small Widget (Single Button)
     
     private var smallWidget: some View {
-        VStack(spacing: 0) {
-            // Minimal header
-            HStack {
-                Text("Instalog")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(secondaryTextColor)
-                Spacer()
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(accentColor)
-                        .frame(width: 6, height: 6)
-                    Text("\(entry.todayCount) today")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(secondaryTextColor)
-                }
-            }
+        VStack(spacing: 2) {
+            Text("Instalog")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(secondaryTextColor)
             
-            Spacer()
+            Text("\(entry.todayCount)")
+                .font(.system(size: 44, weight: .bold, design: .rounded))
+                .foregroundColor(textColor)
             
-            // Show default Quick Log button if no presets configured
+            Text("logs today")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(secondaryTextColor)
+            
+            Spacer().frame(height: 8)
+            
+            // Button
             if entry.presets.isEmpty {
                 Link(destination: URL(string: "instalog://log")!) {
-                    VStack(spacing: 10) {
-                        // Glowing button
-                        ZStack {
-                            // Glow layer
-                            Circle()
-                                .fill(accentGlow)
-                                .frame(width: 72, height: 72)
-                                .blur(radius: 20)
-                            
-                            // Main button
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [accentColor, accentColor.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 56, height: 56)
-                            
-                            Image(systemName: "plus")
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        
+                    VStack(spacing: 4) {
+                        Circle()
+                            .fill(accentColor)
+                            .shadow(color: accentGlow, radius: 8, x: 0, y: 2)
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(.white)
+                            )
                         Text("Quick Log")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(textColor)
                     }
                 }
-            }
-            // First preset button
-            else if let preset = entry.presets.first {
+            } else if let preset = entry.presets.first {
                 if #available(iOS 17.0, *) {
                     Button(intent: createIntent(for: preset)) {
-                        VStack(spacing: 10) {
-                            // Glowing button
-                            ZStack {
-                                // Glow layer
-                                Circle()
-                                    .fill(accentGlow)
-                                    .frame(width: 72, height: 72)
-                                    .blur(radius: 20)
-                                
-                                // Main button
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [accentColor, accentColor.opacity(0.8)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 56, height: 56)
-                                
-                                Image(systemName: preset.icon)
-                                    .font(.system(size: 26, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                            
+                        VStack(spacing: 4) {
+                            Circle()
+                                .fill(accentColor)
+                                .shadow(color: accentGlow, radius: 8, x: 0, y: 2)
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: preset.icon)
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.white)
+                                )
                             Text(preset.label)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(textColor)
                                 .lineLimit(1)
                         }
                     }
                     .buttonStyle(.plain)
                 } else {
-                    // Fallback for iOS < 17
                     Link(destination: URL(string: "instalog://log")!) {
-                        VStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(accentGlow)
-                                    .frame(width: 72, height: 72)
-                                    .blur(radius: 20)
-                                
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [accentColor, accentColor.opacity(0.8)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 56, height: 56)
-                                
-                                Image(systemName: preset.icon)
-                                    .font(.system(size: 26, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                            
+                        VStack(spacing: 4) {
+                            Circle()
+                                .fill(accentColor)
+                                .shadow(color: accentGlow, radius: 8, x: 0, y: 2)
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: preset.icon)
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.white)
+                                )
                             Text(preset.label)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(textColor)
                                 .lineLimit(1)
                         }
                     }
                 }
             }
-            
-            Spacer()
         }
-        .padding(16)
+        .padding(12)
     }
     
     // MARK: - Medium Widget (Up to 3 Buttons)
     
     private var mediumWidget: some View {
-        VStack(spacing: 0) {
-            // Minimal header
-            HStack {
+        ZStack {
+            // Main content
+            VStack(spacing: 1) {
                 Text("Instalog")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(secondaryTextColor)
-                Spacer()
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(accentColor)
-                        .frame(width: 6, height: 6)
-                    Text("\(entry.todayCount) today")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(secondaryTextColor)
-                }
-            }
-            
-            Spacer()
-            
-            // Show default Quick Log button if no presets configured
-            if entry.presets.isEmpty {
-                Link(destination: URL(string: "instalog://log")!) {
-                    VStack(spacing: 12) {
-                        // Glowing button
-                        ZStack {
+                
+                Text("\(entry.todayCount)")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundColor(textColor)
+                
+                Text("logs today")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(secondaryTextColor)
+                
+                Spacer().frame(height: 6)
+                
+                // Buttons
+                if entry.presets.isEmpty {
+                    Link(destination: URL(string: "instalog://log")!) {
+                        VStack(spacing: 4) {
                             Circle()
-                                .fill(accentGlow)
-                                .frame(width: 88, height: 88)
-                                .blur(radius: 25)
-                            
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [accentColor, accentColor.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                .fill(accentColor)
+                                .shadow(color: accentGlow, radius: 8, x: 0, y: 2)
+                                .frame(width: 48, height: 48)
+                                .overlay(
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.white)
                                 )
-                                .frame(width: 64, height: 64)
-                            
-                            Image(systemName: "plus")
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundColor(.white)
+                            Text("Quick Log")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(textColor)
                         }
-                        
-                        Text("Quick Log")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(textColor)
                     }
-                }
-            } else {
-                // Preset buttons in a row
-                HStack(spacing: 24) {
-                    ForEach(entry.presets.prefix(3)) { preset in
-                        presetButton(for: preset)
+                } else {
+                    // Preset buttons in a row
+                    HStack(spacing: 24) {
+                        ForEach(entry.presets.prefix(3)) { preset in
+                            presetButton(for: preset)
+                        }
                     }
                 }
             }
             
-            Spacer()
+            // Mascot in bottom-left corner
+            VStack {
+                Spacer()
+                HStack {
+                    Image("logonobg")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 175, height: 175)
+                        .offset(x: -55, y: -50)
+                    Spacer()
+                }
+            }
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.top, 26)
+        .padding(.bottom, 32)
     }
     
     // MARK: - Preset Button
@@ -286,13 +234,13 @@ struct InstalogWidgetEntryView : View {
     private func presetButton(for preset: WidgetPreset) -> some View {
         if #available(iOS 17.0, *) {
             Button(intent: createIntent(for: preset)) {
-                VStack(spacing: 8) {
+                VStack(spacing: 4) {
                     // Glowing icon button
                     ZStack {
                         Circle()
                             .fill(accentGlow)
-                            .frame(width: 64, height: 64)
-                            .blur(radius: 16)
+                            .frame(width: 54, height: 54)
+                            .blur(radius: 10)
                         
                         Circle()
                             .fill(
@@ -302,15 +250,15 @@ struct InstalogWidgetEntryView : View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 48, height: 48)
+                            .frame(width: 42, height: 42)
                         
                         Image(systemName: preset.icon)
-                            .font(.system(size: 22, weight: .medium))
+                            .font(.system(size: 19, weight: .medium))
                             .foregroundColor(.white)
                     }
                     
                     Text(preset.label)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundColor(textColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)

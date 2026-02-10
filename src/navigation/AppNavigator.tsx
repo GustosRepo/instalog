@@ -3,27 +3,58 @@
  * Dark-first design with 3 core screens
  */
 
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Text, View} from 'react-native';
+import {Text, View, ActivityIndicator, Animated} from 'react-native';
 
 import {InstalogScreen, InboxScreen, WrapUpScreen, ReviewScreen, SettingsScreen} from '../screens';
 import WidgetConfigScreen from '../screens/WidgetConfigScreen';
 import PaywallScreen from '../screens/PaywallScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import {useLogStore} from '../stores/useLogStore';
 import {useHintsStore} from '../stores/useHintsStore';
+import {useOnboardingStore} from '../stores/useOnboardingStore';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Simple text-based tab icons
-const TabIcon: React.FC<{label: string; focused: boolean}> = ({label, focused}) => (
-  <Text style={{fontSize: 24, opacity: focused ? 1 : 0.4}}>
-    {label}
-  </Text>
-);
+// Animated tab icon with spring bounce
+const TabIcon: React.FC<{label: string; focused: boolean}> = ({label, focused}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  
+  useEffect(() => {
+    if (focused) {
+      // Bounce animation when tab becomes focused
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.2,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 3,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [focused]);
+  
+  return (
+    <Animated.Text 
+      style={{
+        fontSize: 24, 
+        opacity: focused ? 1 : 0.4,
+        transform: [{scale: scaleAnim}],
+      }}
+    >
+      {label}
+    </Animated.Text>
+  );
+};
 
 const TabNavigator: React.FC = () => {
   const logs = useLogStore(state => state.logs);
@@ -113,6 +144,26 @@ const TabNavigator: React.FC = () => {
 };
 
 const AppNavigator: React.FC = () => {
+  const {hasSeenOnboarding, isLoading, loadOnboardingState} = useOnboardingStore();
+  
+  useEffect(() => {
+    loadOnboardingState();
+  }, []);
+  
+  // Show loading while checking onboarding state
+  if (isLoading) {
+    return (
+      <View style={{flex: 1, backgroundColor: '#0B0D10', justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color="#6E6AF2" />
+      </View>
+    );
+  }
+  
+  // Show onboarding for new users
+  if (!hasSeenOnboarding) {
+    return <OnboardingScreen />;
+  }
+  
   return (
     <NavigationContainer
       theme={{

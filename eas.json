@@ -18,5 +18,14 @@
         "buildConfiguration": "Release"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "agy@codewerx.io",
+        "ascAppId": "6741432763",
+        "appleTeamId": "7SQ95N7X4N"
+      }
+    }
   }
 }

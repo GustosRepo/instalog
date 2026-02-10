@@ -20,6 +20,7 @@ import {
   ScrollView,
   Keyboard,
   ImageBackground,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -444,10 +445,21 @@ const WrapUpScreen: React.FC = () => {
 
   const renderAllClear = () => (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32}}>
+      <View style={{
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+      }}>
+        <Text style={{fontSize: 36}}>✓</Text>
+      </View>
       <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700', marginBottom: 8}}>
         All clear
       </Text>
-      <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center'}}>
+      <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center', lineHeight: 24}}>
         Nice work! All logs have been processed.
       </Text>
     </View>
@@ -458,7 +470,7 @@ const WrapUpScreen: React.FC = () => {
       <ImageBackground
         source={require('../../assets/logonobg.png')}
         style={{flex: 1}}
-        imageStyle={{opacity: 0.03, resizeMode: 'center'}}
+        imageStyle={{opacity: sortedLogs.length === 0 ? 0 : 0.03, resizeMode: 'center'}}
         resizeMode="center">
         {/* Header */}
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32}}>
@@ -507,8 +519,17 @@ const WrapUpScreen: React.FC = () => {
             
             {/* Helper text */}
             <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', marginTop: 32, paddingHorizontal: 24}}>
-              Swipe left to archive • Swipe right to sort
+              ← Archive • Sort into bucket →
             </Text>
+            {buckets.length === 0 && (
+              <TouchableOpacity 
+                onPress={() => setShowBucketManager(true)}
+                style={{marginTop: 12, alignSelf: 'center'}}>
+                <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>
+                  Create your first bucket
+                </Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
       </View>

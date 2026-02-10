@@ -20,6 +20,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
 import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
 import {useHintsStore} from '../stores/useHintsStore';
+import {useOnboardingStore} from '../stores/useOnboardingStore';
 import {storage} from '../storage/mmkv';
 import {Haptics} from '../utils/haptics';
 
@@ -30,8 +31,9 @@ const SettingsScreen: React.FC = () => {
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
   
-  const {isPro, totalLogCount, logsRemaining, restorePurchases} = useSubscriptionStore();
+  const {isPro, totalLogCount, logsRemaining, restorePurchases, setPro} = useSubscriptionStore();
   const {hasSeenWidgetHint, markWidgetHintSeen} = useHintsStore();
+  const {resetOnboarding} = useOnboardingStore();
   
   const showWidgetHint = logs.length >= 3 && !hasSeenWidgetHint;
 
@@ -120,6 +122,21 @@ const SettingsScreen: React.FC = () => {
                   Manage Subscription
                 </Text>
               </TouchableOpacity>
+              
+              {/* DEV ONLY: Toggle Pro */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setPro(!isPro);
+                    Haptics.success();
+                  }}
+                  style={{alignItems: 'center', paddingVertical: 8, marginTop: 12, backgroundColor: '#FFA50033', paddingHorizontal: 16, borderRadius: 8}}
+                >
+                  <Text style={{color: '#FFA500', fontSize: 13, fontWeight: '600'}}>
+                    [DEV] Toggle Pro: {isPro ? 'ON' : 'OFF'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -160,6 +177,36 @@ const SettingsScreen: React.FC = () => {
                   Restore Purchases
                 </Text>
               </TouchableOpacity>
+              
+              {/* DEV ONLY: Toggle Pro */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setPro(!isPro);
+                    Haptics.success();
+                  }}
+                  style={{alignItems: 'center', paddingVertical: 8, marginTop: 12, backgroundColor: '#FFA50033', paddingHorizontal: 16, borderRadius: 8}}
+                >
+                  <Text style={{color: '#FFA500', fontSize: 13, fontWeight: '600'}}>
+                    [DEV] Toggle Pro: {isPro ? 'ON' : 'OFF'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {/* DEV ONLY: Reset Onboarding */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  onPress={() => {
+                    resetOnboarding();
+                    Haptics.warning();
+                  }}
+                  style={{alignItems: 'center', paddingVertical: 8, marginTop: 8, backgroundColor: '#FF634733', paddingHorizontal: 16, borderRadius: 8}}
+                >
+                  <Text style={{color: '#FF6347', fontSize: 13, fontWeight: '600'}}>
+                    [DEV] Reset Onboarding
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
         </View>
@@ -203,6 +250,7 @@ const SettingsScreen: React.FC = () => {
               resizeMode="contain"
             />
           </View>
+          
           <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
             About
           </Text>

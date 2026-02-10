@@ -158,19 +158,19 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({log
       </Text>
 
       {/* Weekday headers */}
-      <View style={{flexDirection: 'row', marginBottom: 8}}>
+      <View style={{flexDirection: 'row', marginBottom: 12, alignSelf: 'center'}}>
         {weekDays.map((day, i) => (
-          <View key={i} style={{width: 32, height: 32, justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={{color: '#9AA0A6', fontSize: 12}}>{day}</Text>
+          <View key={i} style={{width: 40, height: 24, marginHorizontal: 4, justifyContent: 'center', alignItems: 'center'}}>
+            <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>{day}</Text>
           </View>
         ))}
       </View>
 
       {/* Calendar grid */}
-      <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+      <View style={{flexDirection: 'row', flexWrap: 'wrap', alignSelf: 'center', width: 7 * 48}}>
         {monthGrid.map((cell, index) => {
           if (!cell.dateKey) {
-            return <View key={`empty-${index}`} style={{width: 32, height: 32, margin: 2}} />;
+            return <View key={`empty-${index}`} style={{width: 40, height: 40, margin: 4}} />;
           }
 
           const count = logsByDay[cell.dateKey]?.length || 0;
@@ -186,15 +186,15 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({log
                 }
               }}
               style={{
-                width: 32,
-                height: 32,
-                margin: 2,
+                width: 40,
+                height: 40,
+                margin: 4,
                 backgroundColor: color,
-                borderRadius: 4,
+                borderRadius: 8,
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <Text style={{color: level > 1 ? '#EDEEF0' : '#9AA0A6', fontSize: 10}}>
+              <Text style={{color: level > 1 ? '#EDEEF0' : '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
                 {cell.date!.getDate()}
               </Text>
             </TouchableOpacity>
