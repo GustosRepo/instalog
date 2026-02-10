@@ -44,7 +44,7 @@ class Storage {
 
     const keys = Object.values(STORAGE_KEYS);
     const pairs = await AsyncStorage.multiGet(keys);
-    console.log('[Storage] Init - loading from AsyncStorage:', pairs);
+    if (__DEV__) console.log('[Storage] Init - loading from AsyncStorage:', pairs);
     pairs.forEach(([key, value]) => {
       if (value && !this.cache.has(key)) {
         this.cache.set(key, value);
@@ -75,12 +75,12 @@ class Storage {
   getObject<T>(key: string): T | null {
     const value = this.cache.get(key);
     if (!value) {
-      console.log(`[Storage] getObject ${key}: null`);
+      if (__DEV__) console.log(`[Storage] getObject ${key}: null`);
       return null;
     }
     try {
       const parsed = JSON.parse(value) as T;
-      if (key === STORAGE_KEYS.BUCKETS) {
+      if (__DEV__ && key === STORAGE_KEYS.BUCKETS) {
         console.log(`[Storage] getObject ${key}:`, parsed);
       }
       return parsed;
@@ -92,7 +92,7 @@ class Storage {
 
   setObject<T>(key: string, value: T): void {
     const json = JSON.stringify(value);
-    if (key === STORAGE_KEYS.BUCKETS) {
+    if (__DEV__ && key === STORAGE_KEYS.BUCKETS) {
       console.log(`[Storage] setObject ${key}:`, value);
     }
     this.cache.set(key, json);
@@ -103,10 +103,10 @@ class Storage {
     
     // Also save logs to App Group for widget access
     if (canUseAppGroup && key === STORAGE_KEYS.LOGS) {
-      console.log('[Storage] Saving logs to App Group, count:', Array.isArray(value) ? (value as any[]).length : 'N/A');
+      if (__DEV__) console.log('[Storage] Saving logs to App Group, count:', Array.isArray(value) ? (value as any[]).length : 'N/A');
       WidgetPresetsModule.saveLogs(json)
         .then(() => {
-          console.log('[Storage] ✅ Logs saved to App Group successfully');
+          if (__DEV__) console.log('[Storage] ✅ Logs saved to App Group successfully');
         })
         .catch((error: Error) => {
           console.warn('[Storage] ❌ Failed to save logs to App Group', error);
@@ -143,7 +143,7 @@ class Storage {
     
     try {
       const logsJson = await WidgetPresetsModule.loadLogs();
-      console.log('[AppGroup] Loaded logs:', logsJson?.substring(0, 200));
+      if (__DEV__) console.log('[AppGroup] Loaded logs:', logsJson?.substring(0, 200));
       if (logsJson && logsJson !== '[]') {
         this.cache.set(STORAGE_KEYS.LOGS, logsJson);
         await AsyncStorage.setItem(STORAGE_KEYS.LOGS, logsJson);

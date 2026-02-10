@@ -38,7 +38,7 @@ export const useLogStore = create<LogState>((set, get) => ({
   logs: getAllLogs(),
   buckets: (() => {
     const buckets = storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? [];
-    console.log('[Store Init] Loaded buckets:', buckets);
+    if (__DEV__) console.log('[Store Init] Loaded buckets:', buckets);
     return buckets;
   })(),
 
@@ -54,7 +54,7 @@ export const useLogStore = create<LogState>((set, get) => ({
 
   refreshBuckets: () => {
     const buckets = storage.getObject<Bucket[]>(STORAGE_KEYS.BUCKETS) ?? [];
-    console.log('[Store] Refreshing buckets:', buckets);
+    if (__DEV__) console.log('[Store] Refreshing buckets:', buckets);
     set({buckets});
   },
 
@@ -82,7 +82,7 @@ export const useLogStore = create<LogState>((set, get) => ({
       name,
     };
     const updatedBuckets = [...get().buckets, bucket];
-    console.log('[Store] Adding bucket:', bucket, 'Total buckets:', updatedBuckets.length);
+    if (__DEV__) console.log('[Store] Adding bucket:', bucket, 'Total buckets:', updatedBuckets.length);
     storage.setObject(STORAGE_KEYS.BUCKETS, updatedBuckets);
     set({buckets: updatedBuckets});
     return bucket;

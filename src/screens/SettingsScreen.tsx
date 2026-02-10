@@ -373,18 +373,27 @@ const SettingsScreen: React.FC = () => {
           </Text>
           
           {/* Legal Links - Required for App Store */}
-          <View style={{flexDirection: 'row', gap: 16}}>
+          <View style={{flexDirection: 'row', gap: 16, marginBottom: 12}}>
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://instalog.app/privacy')}
+              onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
               accessible={true}
               accessibilityRole="link">
               <Text style={{color: '#6E6AF2', fontSize: 14}}>Privacy Policy</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://instalog.app/terms')}
+              onPress={() => Linking.openURL('https://www.code-werx.com/instalog-terms')}
               accessible={true}
               accessibilityRole="link">
               <Text style={{color: '#6E6AF2', fontSize: 14}}>Terms of Service</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{alignItems: 'center'}}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('mailto:admin@code-wrx.com')}
+              accessible={true}
+              accessibilityRole="link">
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>Contact Support</Text>
             </TouchableOpacity>
           </View>
         </View>

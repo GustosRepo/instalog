@@ -322,14 +322,14 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         }}>
           Subscription renews automatically. Cancel anytime in Settings.{'\n'}
           <Text
-            onPress={() => Linking.openURL('https://instalog.app/terms')}
+            onPress={() => Linking.openURL('https://www.code-werx.com/instalog-terms')}
             style={{textDecorationLine: 'underline'}}
           >
             Terms
           </Text>
           {' · '}
           <Text
-            onPress={() => Linking.openURL('https://instalog.app/privacy')}
+            onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
             style={{textDecorationLine: 'underline'}}
           >
             Privacy

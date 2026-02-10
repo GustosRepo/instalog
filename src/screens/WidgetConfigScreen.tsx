@@ -47,10 +47,12 @@ const WidgetConfigScreen: React.FC = () => {
     loadPresets();
     
     // Debug: Check if native module is available
-    if (!WidgetPresetsModule) {
-      console.warn('WidgetPresetsModule not found - native files not linked in Xcode');
-    } else {
-      console.log('✅ WidgetPresetsModule loaded');
+    if (__DEV__) {
+      if (!WidgetPresetsModule) {
+        console.warn('WidgetPresetsModule not found - native files not linked in Xcode');
+      } else {
+        console.log('✅ WidgetPresetsModule loaded');
+      }
     }
   }, []);
 
