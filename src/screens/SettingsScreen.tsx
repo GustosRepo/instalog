@@ -211,6 +211,51 @@ const SettingsScreen: React.FC = () => {
           )}
         </View>
 
+        {/* How It Works Section */}
+        <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+          <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
+            How It Works
+          </Text>
+          
+          <View style={{marginBottom: 16}}>
+            <View style={{flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12}}>
+              <Text style={{fontSize: 16, marginRight: 12}}>⚡</Text>
+              <View style={{flex: 1}}>
+                <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
+                  Quick Log with Bucket
+                </Text>
+                <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
+                  If your widget button has a bucket assigned, logs go directly to that bucket.
+                </Text>
+              </View>
+            </View>
+            
+            <View style={{flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12}}>
+              <Text style={{fontSize: 16, marginRight: 12}}>📥</Text>
+              <View style={{flex: 1}}>
+                <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
+                  Quick Log without Bucket
+                </Text>
+                <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
+                  No bucket? No problem. Logs land in Wrap Up where you can sort them later.
+                </Text>
+              </View>
+            </View>
+            
+            <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+              <Text style={{fontSize: 16, marginRight: 12}}>🪣</Text>
+              <View style={{flex: 1}}>
+                <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
+                  Buckets are Optional
+                </Text>
+                <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
+                  Organize when you have time. Buckets help track different areas of your life.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* About Section with Logo */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
           {/* Widget hint */}
