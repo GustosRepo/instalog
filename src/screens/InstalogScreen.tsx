@@ -10,6 +10,7 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Text,
   Keyboard,
   ImageBackground,
@@ -83,7 +84,12 @@ const InstalogScreen: React.FC = () => {
 
   const handleLog = useCallback(() => {
     const trimmedText = text.trim();
-    // Allow empty logs - just a timestamp tap
+    
+    // Don't log if there's no text - just dismiss keyboard
+    if (!trimmedText) {
+      Keyboard.dismiss();
+      return;
+    }
 
     // Check if user can create logs
     if (!canCreateLog) {
@@ -107,8 +113,8 @@ const InstalogScreen: React.FC = () => {
       }),
     ]).start();
 
-    // Save the log (text can be empty)
-    instalog({text: trimmedText || null});
+    // Save the log
+    instalog({text: trimmedText});
     incrementLogCount();
 
     // Success haptic feedback
@@ -155,6 +161,8 @@ const InstalogScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{flex: 1}}>
       <ImageBackground
         source={require('../../assets/logonobg.png')}
         style={{flex: 1}}
@@ -275,6 +283,8 @@ const InstalogScreen: React.FC = () => {
         </Animated.View>
       </View>
       </ImageBackground>
+        </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
