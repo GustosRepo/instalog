@@ -12,6 +12,7 @@ const {WidgetPresetsModule} = NativeModules;
 export const STORAGE_KEYS = {
   LOGS: '@instalog/logs',
   BUCKETS: '@instalog/buckets',
+  HINTS: 'hints',
 } as const;
 
 // Check if we can use App Group storage (iOS with native module)

@@ -4,9 +4,7 @@
  */
 
 import {create} from 'zustand';
-import {storage} from '../storage/mmkv';
-
-const HINTS_KEY = 'hints';
+import {storage, STORAGE_KEYS} from '../storage/mmkv';
 
 interface HintsState {
   hasSeenFirstTap: boolean;
@@ -28,35 +26,35 @@ export const useHintsStore = create<HintsState>((set) => ({
   hasSeenWidgetHint: false,
   
   markFirstTapSeen: () => {
-    const hints = storage.getObject<any>(HINTS_KEY) ?? {};
+    const hints = storage.getObject<any>(STORAGE_KEYS.HINTS) ?? {};
     hints.hasSeenFirstTap = true;
-    storage.setObject(HINTS_KEY, hints);
+    storage.setObject(STORAGE_KEYS.HINTS, hints);
     set({hasSeenFirstTap: true});
   },
   
   markWrapUpToastSeen: () => {
-    const hints = storage.getObject<any>(HINTS_KEY) ?? {};
+    const hints = storage.getObject<any>(STORAGE_KEYS.HINTS) ?? {};
     hints.hasSeenWrapUpToast = true;
-    storage.setObject(HINTS_KEY, hints);
+    storage.setObject(STORAGE_KEYS.HINTS, hints);
     set({hasSeenWrapUpToast: true});
   },
   
   markWrapUpOverlaySeen: () => {
-    const hints = storage.getObject<any>(HINTS_KEY) ?? {};
+    const hints = storage.getObject<any>(STORAGE_KEYS.HINTS) ?? {};
     hints.hasSeenWrapUpOverlay = true;
-    storage.setObject(HINTS_KEY, hints);
+    storage.setObject(STORAGE_KEYS.HINTS, hints);
     set({hasSeenWrapUpOverlay: true});
   },
   
   markWidgetHintSeen: () => {
-    const hints = storage.getObject<any>(HINTS_KEY) ?? {};
+    const hints = storage.getObject<any>(STORAGE_KEYS.HINTS) ?? {};
     hints.hasSeenWidgetHint = true;
-    storage.setObject(HINTS_KEY, hints);
+    storage.setObject(STORAGE_KEYS.HINTS, hints);
     set({hasSeenWidgetHint: true});
   },
   
   loadHints: () => {
-    const hints = storage.getObject<any>(HINTS_KEY) ?? {};
+    const hints = storage.getObject<any>(STORAGE_KEYS.HINTS) ?? {};
     set({
       hasSeenFirstTap: hints.hasSeenFirstTap ?? false,
       hasSeenWrapUpToast: hints.hasSeenWrapUpToast ?? false,

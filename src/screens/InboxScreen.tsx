@@ -34,6 +34,10 @@ interface LogItemProps {
 const LogItem: React.FC<LogItemProps> = ({item, onDelete}) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDeleting, setIsDeleting] = React.useState(false);
+  
+  // Keep onDelete in a ref to avoid stale closure in panResponder
+  const onDeleteRef = useRef(onDelete);
+  onDeleteRef.current = onDelete;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -55,7 +59,7 @@ const LogItem: React.FC<LogItemProps> = ({item, onDelete}) => {
             duration: 200,
             useNativeDriver: false,
           }).start(() => {
-            onDelete();
+            onDeleteRef.current();
           });
         } else {
           // Return to center
