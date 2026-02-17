@@ -51,7 +51,7 @@ class SharedStore {
         let freeLogLimit = defaults.integer(forKey: freeLogLimitKey)
         
         // Default limit if not set
-        let limit = freeLogLimit > 0 ? freeLogLimit : 25
+        let limit = freeLogLimit > 0 ? freeLogLimit : 7
         
         return totalLogCount < limit
     }

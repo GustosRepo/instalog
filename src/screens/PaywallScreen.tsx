@@ -58,6 +58,9 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
   // Get product prices from loaded products
   const monthlyProduct = products.find(p => p.id === PRODUCT_IDS.monthly);
   const yearlyProduct = products.find(p => p.id === PRODUCT_IDS.yearly);
+  const selectedProduct = selectedPlan === 'monthly' ? monthlyProduct : yearlyProduct;
+  const selectedDisplayPrice = selectedProduct?.displayPrice ?? (selectedPlan === 'yearly' ? '$19.99' : '$3.99');
+  const selectedBillingPeriod = selectedPlan === 'yearly' ? 'year' : 'month';
   
   const handlePurchase = async () => {
     setIsLoading(true);
@@ -171,7 +174,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           paddingHorizontal: 16,
         }}>
           {atLimit 
-            ? `You've logged ${totalLogCount} moments. Upgrade to continue capturing.`
+            ? `You've used all ${FREE_LOG_LIMIT} free logs. Upgrade to continue capturing.`
             : 'Unlimited everything. All your devices. One calm place for it all.'
           }
         </Text>
@@ -214,34 +217,27 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                   borderWidth: 2,
                   borderColor: selectedPlan === 'yearly' ? '#6E6AF2' : '#2A2D34',
                   borderRadius: 12,
-                  padding: 16,
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
                   marginBottom: 12,
                 }}
               >
-                <View>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-                      Yearly
-                    </Text>
-                    <View style={{
-                      backgroundColor: '#6E6AF2',
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 4,
-                      marginLeft: 8,
-                    }}>
-                      <Text style={{color: '#FFFFFF', fontSize: 11, fontWeight: '700'}}>
-                        SAVE 44%
-                      </Text>
-                    </View>
-                  </View>
+                <View style={{flex: 1, paddingRight: 12}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
+                    Yearly
+                  </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-                    $1.67/month, billed annually
+                    12-month subscription · billed annually
                   </Text>
                 </View>
-                <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>
-                  {yearlyProduct?.displayPrice ?? '$19.99'}
-                </Text>
+                <View style={{alignItems: 'flex-end', paddingRight: 2}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '800'}}>
+                    {yearlyProduct?.displayPrice ?? '$19.99'}
+                  </Text>
+                  <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
+                    per year
+                  </Text>
+                </View>
               </TouchableOpacity>
               
               {/* Monthly */}
@@ -255,24 +251,43 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                   borderWidth: 2,
                   borderColor: selectedPlan === 'monthly' ? '#6E6AF2' : '#2A2D34',
                   borderRadius: 12,
-                  padding: 16,
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
                 }}
               >
-                <View>
+                <View style={{flex: 1, paddingRight: 12}}>
                   <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
                     Monthly
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-                    Cancel anytime
+                    1-month subscription · billed monthly
                   </Text>
                 </View>
-                <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>
-                  {monthlyProduct?.displayPrice ?? '$3.99'}
-                </Text>
+                <View style={{alignItems: 'flex-end', paddingRight: 2}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '800'}}>
+                    {monthlyProduct?.displayPrice ?? '$3.99'}
+                  </Text>
+                  <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
+                    per month
+                  </Text>
+                </View>
               </TouchableOpacity>
             </>
           )}
         </View>
+
+        <Text
+          style={{
+            color: '#9AA0A6',
+            fontSize: 13,
+            textAlign: 'center',
+            lineHeight: 19,
+            marginBottom: 16,
+            paddingHorizontal: 8,
+          }}
+        >
+          You will be charged {selectedDisplayPrice} per {selectedBillingPeriod}. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.
+        </Text>
         
         {/* CTA Button */}
         <TouchableOpacity
@@ -291,7 +306,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={{color: '#FFFFFF', fontSize: 17, fontWeight: '600'}}>
-              Continue with Pro
+              Continue · {selectedDisplayPrice}/{selectedBillingPeriod}
             </Text>
           )}
         </TouchableOpacity>
@@ -320,19 +335,19 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           marginTop: 8,
           marginBottom: 16,
         }}>
-          Subscription renews automatically. Cancel anytime in Settings.{'\n'}
+          Instalog Pro auto-renewable subscription. Cancel anytime in Settings.{"\n"}
           <Text
             onPress={() => Linking.openURL('https://www.code-werx.com/instalog-terms')}
             style={{textDecorationLine: 'underline'}}
           >
-            Terms
+            Terms of Use (EULA)
           </Text>
           {' · '}
           <Text
             onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
             style={{textDecorationLine: 'underline'}}
           >
-            Privacy
+            Privacy Policy
           </Text>
         </Text>
       </ScrollView>

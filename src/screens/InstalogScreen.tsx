@@ -41,6 +41,8 @@ const InstalogScreen: React.FC = () => {
   const instalog = useLogStore(state => state.instalog);
   const {canCreateLog, logsRemaining, isPro, incrementLogCount} = useSubscriptionStore();
   const {hasSeenFirstTap, markFirstTapSeen, hasSeenWrapUpToast, markWrapUpToastSeen, loadHints} = useHintsStore();
+  const logsLeftVisibilityThreshold = Math.max(1, FREE_LOG_LIMIT - 2);
+  const logsLeftWarningThreshold = Math.max(1, Math.floor(FREE_LOG_LIMIT / 3));
 
   useEffect(() => {
     loadHints();
@@ -174,9 +176,9 @@ const InstalogScreen: React.FC = () => {
           <Text style={{color: '#9AA0A6', fontSize: 16, opacity: 0.7, fontWeight: '600'}}>
             Instalog
           </Text>
-          {!isPro && logsRemaining <= 20 && (
+          {!isPro && logsRemaining <= logsLeftVisibilityThreshold && (
             <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
-              <Text style={{color: logsRemaining <= 5 ? '#EF4444' : '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
+              <Text style={{color: logsRemaining <= logsLeftWarningThreshold ? '#EF4444' : '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
                 {logsRemaining} logs left
               </Text>
             </TouchableOpacity>

@@ -142,12 +142,12 @@ const SettingsScreen: React.FC = () => {
             <>
               <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 8}}>
                 {logsRemaining > 0 
-                  ? `You have ${logsRemaining} free logs remaining.`
-                  : 'You\'ve reached the free limit.'
+                  ? `You have ${logsRemaining} of ${FREE_LOG_LIMIT} free logs remaining.`
+                  : `You\'ve reached your ${FREE_LOG_LIMIT} free logs.`
                 }
               </Text>
               <Text style={{color: '#6B7280', fontSize: 13, marginBottom: 16}}>
-                {totalLogCount} of {FREE_LOG_LIMIT} logs used
+                {totalLogCount} of {FREE_LOG_LIMIT} free logs used
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Paywall')}

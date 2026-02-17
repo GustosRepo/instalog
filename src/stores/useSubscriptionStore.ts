@@ -10,11 +10,11 @@ import {storage, STORAGE_KEYS} from '../storage/mmkv';
 const {StoreKitModule} = NativeModules;
 
 // Constants
-export const FREE_LOG_LIMIT = 25;
+export const FREE_LOG_LIMIT = 7;
 export const FREE_BUCKET_LIMIT = 3;
 export const FREE_WIDGET_PRESET_LIMIT = 1;
-export const SOFT_PROMPT_THRESHOLD = 10; // 40% through free tier
-export const BADGE_THRESHOLD = 18; // 72% through free tier
+export const SOFT_PROMPT_THRESHOLD = 3; // ~43% through free tier
+export const BADGE_THRESHOLD = 5; // ~71% through free tier
 
 export type SubscriptionTier = 'free' | 'pro';
 
