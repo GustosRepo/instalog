@@ -337,7 +337,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         }}>
           Instalog Pro auto-renewable subscription. Cancel anytime in Settings.{"\n"}
           <Text
-            onPress={() => Linking.openURL('https://www.code-werx.com/instalog-terms')}
+            onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
             style={{textDecorationLine: 'underline'}}
           >
             Terms of Use (EULA)

@@ -380,8 +380,8 @@ const SettingsScreen: React.FC = () => {
               accessibilityRole="link">
               <Text style={{color: '#6E6AF2', fontSize: 14}}>Privacy Policy</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => Linking.openURL('https://www.code-werx.com/instalog-terms')}
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
               accessible={true}
               accessibilityRole="link">
               <Text style={{color: '#6E6AF2', fontSize: 14}}>Terms of Service</Text>
