@@ -4,10 +4,10 @@
   "expo": {
     "name": "Instalog",
     "slug": "instalog",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "ios": {
       "bundleIdentifier": "com.instalog.app",
-      "buildNumber": "12",
+      "buildNumber": "16",
       "supportsTablet": true
     },
     "plugins": [],
