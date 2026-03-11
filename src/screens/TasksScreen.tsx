@@ -168,11 +168,7 @@ const ClockFace: React.FC<{
           const endAngle = hourToAngle(endHour);
           const color = ARC_COLORS[index % ARC_COLORS.length];
 
-          // Offset each arc ring slightly outward for stacking
-          const arcR = ARC_RADIUS - index * 8;
-          if (arcR < 30) return null; // Don't draw if too many tasks overlap
-
-          const arcPath = describeArc(CENTER, CENTER, arcR, startAngle, endAngle);
+          const arcPath = describeArc(CENTER, CENTER, ARC_RADIUS, startAngle, endAngle);
           const isSelected = selectedTaskId === task.id;
           const isOtherSelected = selectedTaskId !== null && !isSelected;
 
