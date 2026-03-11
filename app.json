@@ -4,7 +4,7 @@
   "expo": {
     "name": "Instalog",
     "slug": "instalog",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "ios": {
       "bundleIdentifier": "com.instalog.app",
       "buildNumber": "16",
