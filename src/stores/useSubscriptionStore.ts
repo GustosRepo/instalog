@@ -87,9 +87,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       try {
         const status = await StoreKitModule.checkSubscriptionStatus();
         isPro = status.isPro;
-        if (isPro) {
-          storage.setString(SUB_KEYS.TIER, 'pro');
-        }
+        // Always sync storage with the authoritative StoreKit result
+        storage.setString(SUB_KEYS.TIER, isPro ? 'pro' : 'free');
       } catch (error) {
         console.warn('Failed to check subscription status:', error);
       }
