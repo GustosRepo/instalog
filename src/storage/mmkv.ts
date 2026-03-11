@@ -12,6 +12,7 @@ const {WidgetPresetsModule} = NativeModules;
 export const STORAGE_KEYS = {
   LOGS: '@instalog/logs',
   BUCKETS: '@instalog/buckets',
+  TASKS: '@instalog/tasks',
   HINTS: 'hints',
 } as const;
 

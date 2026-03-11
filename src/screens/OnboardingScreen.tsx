@@ -42,8 +42,14 @@ const slides: OnboardingSlide[] = [
   },
   {
     id: 3,
+    title: 'Plan your day',
+    subtitle: 'Add tasks and see them on a clock.\nYour pace, your plan.',
+    emoji: '🕐',
+  },
+  {
+    id: 4,
     title: 'See your momentum',
-    subtitle: 'Track your progress.\nStay motivated, stay calm.',
+    subtitle: 'Reflect on what you got done.\nCalm, no pressure.',
     emoji: '📈',
   },
 ];

@@ -26,6 +26,16 @@ function App(): React.JSX.Element {
   const loadHints = useHintsStore(state => state.loadHints);
 
   useEffect(() => {
+    // Handle deep links (iOS Widget, Siri Shortcuts)
+    const handleURL = (event: {url: string}) => {
+      const url = event.url;
+      
+      // instalog://log - Quick log from widget or Siri
+      if (url.includes('instalog://log')) {
+        instalog({text: null});
+      }
+    };
+
     // Initialize storage
     storage.init().then(() => {
       // Refresh store data after storage is ready
@@ -34,6 +44,14 @@ function App(): React.JSX.Element {
       refreshSubscription();
       loadHints();
       setIsReady(true);
+
+      // Check if app was opened with a URL — must run AFTER storage is ready
+      // to avoid a race condition where the log gets overwritten by init()
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          handleURL({url});
+        }
+      });
     });
     
     // TODO: Start StoreKit transaction listener once native module is properly configured
@@ -54,25 +72,8 @@ function App(): React.JSX.Element {
       }
     });
 
-    // Handle deep links (iOS Widget, Siri Shortcuts)
-    const handleURL = (event: {url: string}) => {
-      const url = event.url;
-      
-      // instalog://log - Quick log from widget or Siri
-      if (url.includes('instalog://log')) {
-        instalog({text: null});
-      }
-    };
-
-    // Listen for URL events
+    // Listen for URL events while app is running (background → foreground)
     const subscription = Linking.addEventListener('url', handleURL);
-
-    // Check if app was opened with a URL
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleURL({url});
-      }
-    });
 
     return () => {
       appStateSubscription.remove();

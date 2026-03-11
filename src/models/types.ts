@@ -16,6 +16,17 @@ export interface Bucket {
   name: string;
 }
 
+export interface Task {
+  id: string;
+  text: string;
+  createdAt: string; // ISO string
+  dateKey: string; // YYYY-MM-DD
+  dueTime?: string | null; // ISO string for reminder time
+  completedAt?: string | null; // ISO string when completed
+  snoozedUntil?: string | null; // ISO string
+  notificationId?: string | null; // for cancelling scheduled notifications
+}
+
 /**
  * Helper to get today's dateKey (local timezone)
  */

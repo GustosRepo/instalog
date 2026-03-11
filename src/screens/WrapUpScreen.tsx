@@ -29,6 +29,8 @@ import {useSubscriptionStore, FREE_BUCKET_LIMIT} from '../stores/useSubscription
 import {useHintsStore} from '../stores/useHintsStore';
 import {LogEntry, formatTime} from '../models/types';
 import {useNavigation} from '@react-navigation/native';
+import {MOODS} from '../utils/moods';
+import {maybeRequestReview} from '../utils/storeReview';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -351,6 +353,7 @@ const BucketSelector: React.FC<BucketSelectorProps> = ({visible, onClose, onSele
 };
 
 const WrapUpScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const logs = useLogStore(state => state.logs);
   const getUnsortedLogs = useLogStore(state => state.getUnsortedLogs);
   const assignBucket = useLogStore(state => state.assignBucket);
@@ -443,19 +446,16 @@ const WrapUpScreen: React.FC = () => {
     }
   };
 
-  const renderAllClear = () => (
+  const renderAllClear = () => {
+    // Good moment to ask for a review — user just finished wrapping up
+    setTimeout(() => maybeRequestReview(), 800);
+    return (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32}}>
-      <View style={{
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(34, 197, 94, 0.15)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-      }}>
-        <Text style={{fontSize: 36}}>✓</Text>
-      </View>
+      <Image
+        source={MOODS.heart}
+        style={{width: 100, height: 100, marginBottom: 24}}
+        resizeMode="contain"
+      />
       <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700', marginBottom: 8}}>
         All clear
       </Text>
@@ -463,7 +463,8 @@ const WrapUpScreen: React.FC = () => {
         Nice work! All logs have been processed.
       </Text>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
@@ -477,6 +478,13 @@ const WrapUpScreen: React.FC = () => {
         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
           <View>
             <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Wrap Up</Text>
+          </View>
+          <TouchableOpacity onPress={() => (navigation as any).navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+          <View>
             {sortedLogs.length > 0 && currentIndex < sortedLogs.length && (
               <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4}}>
                 {sortedLogs.length - currentIndex}{' '}

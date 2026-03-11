@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
-import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {Haptics} from '../utils/haptics';
 
 // Product IDs - must match App Store Connect
@@ -41,8 +41,6 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
   const {
     setPro, 
     markPaywallSeen, 
-    logsRemaining, 
-    totalLogCount,
     products,
     loadProducts,
     purchase,
@@ -77,7 +75,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         
         Alert.alert(
           'Welcome to Pro',
-          'You now have unlimited logs and sync across all your devices.',
+          'Clock view, reminders, insights, and more — all yours.',
           [{text: 'Continue', onPress: () => onDismiss?.() || navigation.goBack()}]
         );
       } else {
@@ -117,8 +115,6 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
     onDismiss?.() || navigation.goBack();
   };
   
-  const atLimit = logsRemaining === 0;
-
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}}>
       <ScrollView 
@@ -126,8 +122,8 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 20}}
         showsVerticalScrollIndicator={false}
       >
-        {/* Dismiss button */}
-        {showDismiss && !atLimit && (
+        {/* Dismiss button - always available */}
+        {showDismiss && (
           <TouchableOpacity
             onPress={handleDismiss}
             style={{alignSelf: 'flex-end', paddingVertical: 12}}
@@ -161,7 +157,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           textAlign: 'center',
           marginBottom: 10,
         }}>
-          {atLimit ? 'You\'ve reached the limit' : 'Keep the momentum going.'}
+          Do more with Pro
         </Text>
         
         {/* Subheadline */}
@@ -173,23 +169,19 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           marginBottom: 24,
           paddingHorizontal: 16,
         }}>
-          {atLimit 
-            ? `You've used all ${FREE_LOG_LIMIT} free logs. Upgrade to continue capturing.`
-            : 'Unlimited everything. All your devices. One calm place for it all.'
-          }
+          Unlock the full planner experience.
         </Text>
         
         {/* Benefits */}
         <View style={{marginBottom: 24}}>
           {[
-            'Unlimited logs — never stop capturing what matters',
-            'Unlimited buckets — organize however you want',
-            'Unlimited widget presets — customize every screen',
-            'Seamless sync — pick up where you left off on any device',
-            'Your data, your control — export anytime, no lock-in',
+            '🕐 Clock view — see your day at a glance',
+            '🔔 Task reminders — gentle nudges when you need them',
+            '📊 Review insights — heatmap, search & reflection',
+            '📤 Data export — your data, your control',
+            '🪣 Unlimited buckets & widget presets',
           ].map((benefit, index) => (
             <View key={index} style={{flexDirection: 'row', marginBottom: 12, paddingHorizontal: 8}}>
-              <Text style={{color: '#6E6AF2', fontSize: 16, marginRight: 12}}>✓</Text>
               <Text style={{color: '#EDEEF0', fontSize: 15, flex: 1, lineHeight: 22}}>
                 {benefit}
               </Text>

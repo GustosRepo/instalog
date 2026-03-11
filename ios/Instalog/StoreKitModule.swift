@@ -33,7 +33,7 @@ class StoreKitModule: NSObject {
     [
       "id": "com.instalog.pro.monthly",
       "displayName": "Instalog Pro Monthly",
-      "description": "Unlimited logs and widget presets",
+      "description": "Unlimited buckets, widget presets & sync",
       "price": "3.99",
       "displayPrice": "$3.99",
       "type": "subscription"
@@ -41,9 +41,9 @@ class StoreKitModule: NSObject {
     [
       "id": "com.instalog.pro.yearly",
       "displayName": "Instalog Pro Yearly",
-      "description": "Unlimited logs and widget presets - Save 37%",
-      "price": "29.99",
-      "displayPrice": "$29.99",
+      "description": "Unlimited buckets, widget presets & sync - Save 58%",
+      "price": "19.99",
+      "displayPrice": "$19.99",
       "type": "subscription"
     ]
   ]

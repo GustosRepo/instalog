@@ -4,3 +4,4 @@ export {default as TodayScreen} from './TodayScreen';
 export {default as WrapUpScreen} from './WrapUpScreen';
 export {default as ReviewScreen} from './ReviewScreen';
 export {default as SettingsScreen} from './SettingsScreen';
+export {default as TasksScreen} from './TasksScreen';

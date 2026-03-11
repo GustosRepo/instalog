@@ -17,10 +17,15 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
-import {LogEntry, formatTime} from '../models/types';
+import {useTaskStore} from '../stores/useTaskStore';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
+import {LogEntry, Task, formatTime} from '../models/types';
 import {storage} from '../storage/mmkv';
+import {MOODS} from '../utils/moods';
 
 // Helper: Group logs by YYYY-MM-DD
 const groupLogsByDay = (logs: LogEntry[]): Record<string, LogEntry[]> => {
@@ -85,12 +90,14 @@ interface DayDetailProps {
   onClose: () => void;
   dateKey: string;
   logs: LogEntry[];
+  tasks: Task[];
 }
 
-const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, logs}) => {
+const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, logs, tasks}) => {
   const date = new Date(dateKey);
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dateDisplay = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+  const totalItems = logs.length + tasks.length;
 
   return (
     <Modal
@@ -108,11 +115,11 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
           {/* Header */}
           <View style={{paddingHorizontal: 24, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(154, 160, 166, 0.1)'}}>
             <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>
-              {dateDisplay} — {logs.length} {logs.length === 1 ? 'log' : 'logs'}
+              {dateDisplay} — {totalItems} {totalItems === 1 ? 'item' : 'items'}
             </Text>
           </View>
 
-          {/* Log previews */}
+          {/* Items */}
           <ScrollView 
             style={{paddingHorizontal: 24, paddingTop: 16}}
             showsVerticalScrollIndicator={true}>
@@ -128,6 +135,23 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
                 </Text>
               </View>
             ))}
+            {tasks.map(task => (
+              <View
+                key={task.id}
+                style={{backgroundColor: '#0B0D10', borderRadius: 12, padding: 16, marginBottom: 12}}>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <Text style={{color: '#6E6AF2', fontSize: 12, marginRight: 8}}>✓</Text>
+                  <Text style={{color: '#EDEEF0', fontSize: 16, lineHeight: 24, flex: 1}} numberOfLines={2}>
+                    {task.text}
+                  </Text>
+                </View>
+                {task.completedAt && (
+                  <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 8}}>
+                    Completed {formatTime(task.completedAt)}
+                  </Text>
+                )}
+              </View>
+            ))}
           </ScrollView>
         </View>
       </View>
@@ -136,8 +160,8 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
 };
 
 // Activity Heatmap Component
-const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({logsByDay}) => {
-  const [selectedDay, setSelectedDay] = useState<{dateKey: string; logs: LogEntry[]} | null>(null);
+const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByDay: Record<string, Task[]>}> = ({logsByDay, tasksByDay}) => {
+  const [selectedDay, setSelectedDay] = useState<{dateKey: string; logs: LogEntry[]; tasks: Task[]} | null>(null);
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -173,7 +197,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({log
             return <View key={`empty-${index}`} style={{width: 40, height: 40, margin: 4}} />;
           }
 
-          const count = logsByDay[cell.dateKey]?.length || 0;
+          const count = (logsByDay[cell.dateKey]?.length || 0) + (tasksByDay[cell.dateKey]?.length || 0);
           const level = getIntensityLevel(count);
           const color = getIntensityColor(level);
 
@@ -182,7 +206,11 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({log
               key={cell.dateKey}
               onPress={() => {
                 if (count > 0) {
-                  setSelectedDay({dateKey: cell.dateKey!, logs: logsByDay[cell.dateKey!]});
+                  setSelectedDay({
+                    dateKey: cell.dateKey!,
+                    logs: logsByDay[cell.dateKey!] || [],
+                    tasks: tasksByDay[cell.dateKey!] || [],
+                  });
                 }
               }}
               style={{
@@ -209,6 +237,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>}> = ({log
           onClose={() => setSelectedDay(null)}
           dateKey={selectedDay.dateKey}
           logs={selectedDay.logs}
+          tasks={selectedDay.tasks}
         />
       )}
     </View>
@@ -343,9 +372,16 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
       {searchQuery.trim() && (
         <View>
           {searchResults.length === 0 ? (
-            <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', paddingVertical: 24}}>
-              No matching logs
-            </Text>
+            <View style={{alignItems: 'center', paddingVertical: 24}}>
+              <Image
+                source={MOODS.confused}
+                style={{width: 60, height: 60, marginBottom: 8}}
+                resizeMode="contain"
+              />
+              <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center'}}>
+                No matching logs
+              </Text>
+            </View>
           ) : (
             <View>
               <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 12}}>
@@ -375,32 +411,86 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
   );
 };
 
+// Pro Upsell Banner
+const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature, onUpgrade}) => (
+  <TouchableOpacity
+    onPress={onUpgrade}
+    style={{
+      backgroundColor: '#141821',
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 20,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#6E6AF2',
+      borderStyle: 'dashed',
+    }}>
+    <Text style={{color: '#EDEEF0', fontSize: 16, fontWeight: '600', marginBottom: 4}}>
+      {feature}
+    </Text>
+    <Text style={{color: '#9AA0A6', fontSize: 13, textAlign: 'center'}}>
+      Upgrade to Pro to unlock this.
+    </Text>
+  </TouchableOpacity>
+);
+
 // Main Review Screen
 const ReviewScreen: React.FC = () => {
   const allLogs = useLogStore(state => state.logs);
+  const allTasks = useTaskStore(state => state.tasks);
   const refreshLogs = useLogStore(state => state.refreshLogs);
+  const refreshTasks = useTaskStore(state => state.refreshTasks);
+  const isPro = useSubscriptionStore(state => state.isPro);
+  const navigation = useNavigation<any>();
   const [refreshing, setRefreshing] = useState(false);
 
   const logsByDay = useMemo(() => groupLogsByDay(allLogs), [allLogs]);
 
+  // Group completed tasks by completion date
+  const completedTasksByDay = useMemo(() => {
+    return allTasks
+      .filter(t => t.completedAt)
+      .reduce((acc, task) => {
+        const dateKey = task.completedAt!.split('T')[0];
+        if (!acc[dateKey]) acc[dateKey] = [];
+        acc[dateKey].push(task);
+        return acc;
+      }, {} as Record<string, Task[]>);
+  }, [allTasks]);
+
+  const completedTasks = useMemo(() => {
+    return allTasks
+      .filter(t => t.completedAt)
+      .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
+  }, [allTasks]);
+
   const onRefresh = async () => {
     setRefreshing(true);
-    // First reload from App Group (widget may have added logs)
     await storage.reloadFromAppGroup();
     refreshLogs();
-    // Small delay for visual feedback
+    refreshTasks();
     setTimeout(() => setRefreshing(false), 300);
   };
 
-  if (allLogs.length === 0) {
+  if (allLogs.length === 0 && completedTasks.length === 0) {
     return (
       <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32}}>
-          <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32}}>
+          <Image
+            source={MOODS.chill}
+            style={{width: 100, height: 100, marginBottom: 16}}
+            resizeMode="contain"
+          />
           <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center'}}>
-            Nothing here yet. Your logs will show up as you use Instalog.
+            Nothing here yet. Your logs and completed tasks will show up here.
           </Text>
         </View>
       </View>
@@ -418,8 +508,13 @@ const ReviewScreen: React.FC = () => {
         resizeMode="center">
         {/* Header */}
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 16}}>
-        <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
-      </View>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
       {/* Scrollable content */}
       <ScrollView
@@ -434,9 +529,56 @@ const ReviewScreen: React.FC = () => {
             tintColor="#6E6AF2"
           />
         }>
-        <ActivityHeatmap logsByDay={logsByDay} />
+        {isPro ? (
+          <ActivityHeatmap logsByDay={logsByDay} tasksByDay={completedTasksByDay} />
+        ) : (
+          <ProUpsell feature="📊 Activity Heatmap" onUpgrade={() => navigation.navigate('Paywall')} />
+        )}
         <BucketsSection logs={allLogs} />
-        <SearchSection logs={allLogs} />
+        {completedTasks.length > 0 && (
+          <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+            <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
+              Tasks Completed
+            </Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 16}}>
+              {completedTasks.length} {completedTasks.length === 1 ? 'task' : 'tasks'} done
+            </Text>
+            {completedTasks.slice(0, 10).map(task => (
+              <View
+                key={task.id}
+                style={{backgroundColor: '#0B0D10', borderRadius: 12, padding: 16, marginBottom: 10}}>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: '#6E6AF2',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                    <Text style={{color: '#FFFFFF', fontSize: 11, fontWeight: '700'}}>✓</Text>
+                  </View>
+                  <Text style={{color: '#EDEEF0', fontSize: 16, flex: 1}} numberOfLines={1}>
+                    {task.text}
+                  </Text>
+                </View>
+                <Text style={{color: '#9AA0A6', fontSize: 13, marginTop: 8, marginLeft: 32}}>
+                  {new Date(task.completedAt!).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}{' '}
+                  • {formatTime(task.completedAt!)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+        {isPro ? (
+          <SearchSection logs={allLogs} />
+        ) : (
+          <ProUpsell feature="🔍 Search Logs" onUpgrade={() => navigation.navigate('Paywall')} />
+        )}
       </ScrollView>
       </ImageBackground>
     </KeyboardAvoidingView>

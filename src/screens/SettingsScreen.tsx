@@ -18,11 +18,12 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
-import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {useHintsStore} from '../stores/useHintsStore';
 import {useOnboardingStore} from '../stores/useOnboardingStore';
 import {storage} from '../storage/mmkv';
 import {Haptics} from '../utils/haptics';
+import {MOODS} from '../utils/moods';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -30,8 +31,9 @@ const SettingsScreen: React.FC = () => {
   const buckets = useLogStore(state => state.buckets);
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
+  const [showSadMood, setShowSadMood] = useState(false);
   
-  const {isPro, totalLogCount, logsRemaining, restorePurchases, setPro} = useSubscriptionStore();
+  const {isPro, totalLogCount, restorePurchases, setPro} = useSubscriptionStore();
   const {hasSeenWidgetHint, markWidgetHintSeen} = useHintsStore();
   const {resetOnboarding} = useOnboardingStore();
   
@@ -75,6 +77,8 @@ const SettingsScreen: React.FC = () => {
             refreshBuckets();
             Haptics.warning();
             Alert.alert('Done', 'All data has been cleared');
+            setShowSadMood(true);
+            setTimeout(() => setShowSadMood(false), 2500);
           },
         },
       ],
@@ -96,6 +100,32 @@ const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={{flex: 1}} contentContainerStyle={{paddingHorizontal: 24}}>
+        {/* Widget Config */}
+        <TouchableOpacity
+          onPress={() => {
+            navigation.navigate('Widget');
+            Haptics.light();
+          }}
+          style={{
+            backgroundColor: '#141821',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+          <View style={{flex: 1}}>
+            <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 4}}>
+              📲  Widget Config
+            </Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14}}>
+              Quick-log buttons for your home screen
+            </Text>
+          </View>
+          <Text style={{color: '#9AA0A6', fontSize: 18}}>›</Text>
+        </TouchableOpacity>
+
         {/* Subscription Section */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16}}>
@@ -141,13 +171,10 @@ const SettingsScreen: React.FC = () => {
           ) : (
             <>
               <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 8}}>
-                {logsRemaining > 0 
-                  ? `You have ${logsRemaining} of ${FREE_LOG_LIMIT} free logs remaining.`
-                  : `You\'ve reached your ${FREE_LOG_LIMIT} free logs.`
-                }
+                Upgrade to Pro for clock view, reminders, insights, export, and unlimited buckets.
               </Text>
               <Text style={{color: '#6B7280', fontSize: 13, marginBottom: 16}}>
-                {totalLogCount} of {FREE_LOG_LIMIT} free logs used
+                Logging and basic tasks are always free.
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Paywall')}
@@ -336,18 +363,27 @@ const SettingsScreen: React.FC = () => {
             Actions
           </Text>
 
-          {/* Export Button */}
+          {/* Export Button — Pro only */}
           <TouchableOpacity
-            onPress={handleExportLogs}
+            onPress={() => {
+              if (!isPro) {
+                navigation.navigate('Paywall');
+                return;
+              }
+              handleExportLogs();
+            }}
             style={{backgroundColor: '#6E6AF2', paddingVertical: 14, borderRadius: 12, marginBottom: 12}}
             activeOpacity={0.8}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="Export all data"
             accessibilityHint="Shares all your logs and buckets as a JSON file">
-            <Text style={{color: '#EDEEF0', textAlign: 'center', fontSize: 16, fontWeight: '600'}}>
-              Export All Data
-            </Text>
+            <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8}}>
+              <Text style={{color: '#EDEEF0', textAlign: 'center', fontSize: 16, fontWeight: '600'}}>
+                Export All Data
+              </Text>
+              {!isPro && <Text style={{fontSize: 12}}>⭐</Text>}
+            </View>
           </TouchableOpacity>
 
           {/* Clear Data Button */}
@@ -363,6 +399,17 @@ const SettingsScreen: React.FC = () => {
               Clear All Data
             </Text>
           </TouchableOpacity>
+
+          {/* Sad mood after clearing */}
+          {showSadMood && (
+            <View style={{alignItems: 'center', marginTop: 16}}>
+              <Image
+                source={MOODS.sad}
+                style={{width: 60, height: 60}}
+                resizeMode="contain"
+              />
+            </View>
+          )}
         </View>
 
         {/* Footer */}

@@ -9,12 +9,9 @@ import {storage, STORAGE_KEYS} from '../storage/mmkv';
 
 const {StoreKitModule} = NativeModules;
 
-// Constants
-export const FREE_LOG_LIMIT = 7;
+// Constants - Logs are unlimited for free users; Pro gates power features
 export const FREE_BUCKET_LIMIT = 3;
 export const FREE_WIDGET_PRESET_LIMIT = 1;
-export const SOFT_PROMPT_THRESHOLD = 3; // ~43% through free tier
-export const BADGE_THRESHOLD = 5; // ~71% through free tier
 
 export type SubscriptionTier = 'free' | 'pro';
 
@@ -35,21 +32,13 @@ interface SubscriptionState {
   
   // Tracking
   totalLogCount: number;
-  hasSeenSoftPrompt: boolean;
   hasSeenPaywall: boolean;
-  
-  // Computed
-  canCreateLog: boolean;
-  shouldShowSoftPrompt: boolean;
-  shouldShowBadge: boolean;
-  logsRemaining: number;
   
   // Actions
   refreshSubscription: () => Promise<void>;
   loadProducts: () => Promise<void>;
   purchase: (productId: string) => Promise<boolean>;
   incrementLogCount: () => void;
-  markSoftPromptSeen: () => void;
   markPaywallSeen: () => void;
   setPro: (isPro: boolean) => void;
   restorePurchases: () => Promise<boolean>;
@@ -58,7 +47,6 @@ interface SubscriptionState {
 // Storage keys for subscription data
 const SUB_KEYS = {
   TIER: '@instalog/subscription_tier',
-  SOFT_PROMPT_SEEN: '@instalog/soft_prompt_seen',
   PAYWALL_SEEN: '@instalog/paywall_seen',
 } as const;
 
@@ -68,7 +56,7 @@ const {WidgetPresetsModule} = NativeModules;
 const syncToWidget = async (isPro: boolean, totalLogCount: number) => {
   if (Platform.OS === 'ios' && WidgetPresetsModule?.syncSubscriptionStatus) {
     try {
-      await WidgetPresetsModule.syncSubscriptionStatus(isPro, totalLogCount, FREE_LOG_LIMIT);
+      await WidgetPresetsModule.syncSubscriptionStatus(isPro, totalLogCount, 0);
     } catch (error) {
       console.warn('Failed to sync subscription to widget:', error);
     }
@@ -81,37 +69,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   products: [],
   isLoadingProducts: false,
   totalLogCount: 0,
-  hasSeenSoftPrompt: false,
   hasSeenPaywall: false,
-  
-  // Computed getters
-  get canCreateLog() {
-    const state = get();
-    return state.isPro || state.totalLogCount < FREE_LOG_LIMIT;
-  },
-  
-  get shouldShowSoftPrompt() {
-    const state = get();
-    return !state.isPro && 
-           !state.hasSeenSoftPrompt && 
-           state.totalLogCount >= SOFT_PROMPT_THRESHOLD;
-  },
-  
-  get shouldShowBadge() {
-    const state = get();
-    return !state.isPro && state.totalLogCount >= BADGE_THRESHOLD;
-  },
-  
-  get logsRemaining() {
-    const state = get();
-    if (state.isPro) return Infinity;
-    return Math.max(0, FREE_LOG_LIMIT - state.totalLogCount);
-  },
   
   refreshSubscription: async () => {
     // Load saved tier
     const savedTier = storage.getString(SUB_KEYS.TIER) as SubscriptionTier | undefined;
-    const softPromptSeen = storage.getString(SUB_KEYS.SOFT_PROMPT_SEEN) === 'true';
     const paywallSeen = storage.getString(SUB_KEYS.PAYWALL_SEEN) === 'true';
     
     // Count total logs
@@ -137,15 +99,10 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       tier: isPro ? 'pro' : 'free',
       isPro,
       totalLogCount,
-      hasSeenSoftPrompt: softPromptSeen,
       hasSeenPaywall: paywallSeen,
-      canCreateLog: isPro || totalLogCount < FREE_LOG_LIMIT,
-      shouldShowSoftPrompt: !isPro && !softPromptSeen && totalLogCount >= SOFT_PROMPT_THRESHOLD,
-      shouldShowBadge: !isPro && totalLogCount >= BADGE_THRESHOLD,
-      logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - totalLogCount),
     });
     
-    // Sync to widget for paywall enforcement
+    // Sync to widget
     syncToWidget(isPro, totalLogCount);
   },
   
@@ -188,23 +145,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   incrementLogCount: () => {
     const state = get();
     const newCount = state.totalLogCount + 1;
-    const isPro = state.isPro;
     
-    set({
-      totalLogCount: newCount,
-      canCreateLog: isPro || newCount < FREE_LOG_LIMIT,
-      shouldShowSoftPrompt: !isPro && !state.hasSeenSoftPrompt && newCount >= SOFT_PROMPT_THRESHOLD,
-      shouldShowBadge: !isPro && newCount >= BADGE_THRESHOLD,
-      logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - newCount),
-    });
+    set({ totalLogCount: newCount });
     
-    // Sync to widget for paywall enforcement
-    syncToWidget(isPro, newCount);
-  },
-  
-  markSoftPromptSeen: () => {
-    storage.setString(SUB_KEYS.SOFT_PROMPT_SEEN, 'true');
-    set({hasSeenSoftPrompt: true, shouldShowSoftPrompt: false});
+    // Sync to widget
+    syncToWidget(state.isPro, newCount);
   },
   
   markPaywallSeen: () => {
@@ -220,10 +165,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     set({
       tier,
       isPro,
-      canCreateLog: true,
-      shouldShowSoftPrompt: false,
-      shouldShowBadge: false,
-      logsRemaining: isPro ? Infinity : Math.max(0, FREE_LOG_LIMIT - state.totalLogCount),
     });
     
     // Sync to widget for paywall enforcement

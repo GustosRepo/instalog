@@ -9,12 +9,10 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {Text, View, ActivityIndicator, Animated} from 'react-native';
 
-import {InstalogScreen, InboxScreen, WrapUpScreen, ReviewScreen, SettingsScreen} from '../screens';
+import {InstalogScreen, InboxScreen, WrapUpScreen, ReviewScreen, SettingsScreen, TasksScreen} from '../screens';
 import WidgetConfigScreen from '../screens/WidgetConfigScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
-import {useLogStore} from '../stores/useLogStore';
-import {useHintsStore} from '../stores/useHintsStore';
 import {useOnboardingStore} from '../stores/useOnboardingStore';
 
 const Tab = createBottomTabNavigator();
@@ -46,7 +44,7 @@ const TabIcon: React.FC<{label: string; focused: boolean}> = ({label, focused}) 
   return (
     <Animated.Text 
       style={{
-        fontSize: 24, 
+        fontSize: 20, 
         opacity: focused ? 1 : 0.4,
         transform: [{scale: scaleAnim}],
       }}
@@ -57,12 +55,6 @@ const TabIcon: React.FC<{label: string; focused: boolean}> = ({label, focused}) 
 };
 
 const TabNavigator: React.FC = () => {
-  const logs = useLogStore(state => state.logs);
-  const hasSeenWidgetHint = useHintsStore(state => state.hasSeenWidgetHint);
-  
-  // Show badge after 3 logs if they haven't seen the widget hint
-  const showSettingsBadge = logs.length >= 3 && !hasSeenWidgetHint;
-  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -104,39 +96,17 @@ const TabNavigator: React.FC = () => {
           }}
         />
         <Tab.Screen
+          name="Tasks"
+          component={TasksScreen}
+          options={{
+            tabBarIcon: ({focused}) => <TabIcon label="📋" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
           name="Review"
           component={ReviewScreen}
           options={{
             tabBarIcon: ({focused}) => <TabIcon label="◐" focused={focused} />,
-          }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            tabBarIcon: ({focused}) => (
-              <View>
-                <TabIcon label="⚙" focused={focused} />
-                {showSettingsBadge && (
-                  <View style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -6,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: '#6E6AF2',
-                  }} />
-                )}
-              </View>
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Widget"
-          component={WidgetConfigScreen}
-          options={{
-            tabBarIcon: ({focused}) => <TabIcon label="📲" focused={focused} />,
           }}
         />
       </Tab.Navigator>
@@ -202,7 +172,23 @@ const AppNavigator: React.FC = () => {
           component={PaywallScreen}
           options={{
             presentation: 'modal',
-            gestureEnabled: false,
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen 
+          name="Settings" 
+          component={SettingsScreen}
+          options={{
+            presentation: 'modal',
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen 
+          name="Widget" 
+          component={WidgetConfigScreen}
+          options={{
+            presentation: 'modal',
+            gestureEnabled: true,
           }}
         />
       </Stack.Navigator>

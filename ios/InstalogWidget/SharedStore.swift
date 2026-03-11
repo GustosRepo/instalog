@@ -40,20 +40,10 @@ class SharedStore {
     
     // MARK: - Paywall Check
     
-    /// Check if user can create a log (paywall enforcement)
+    /// Check if user can create a log
+    /// Logging is unlimited for all users — no gate needed
     static func canCreateLog() -> Bool {
-        guard let defaults = userDefaults else { return false }
-        
-        let isPro = defaults.bool(forKey: isProKey)
-        if isPro { return true }
-        
-        let totalLogCount = defaults.integer(forKey: totalLogCountKey)
-        let freeLogLimit = defaults.integer(forKey: freeLogLimitKey)
-        
-        // Default limit if not set
-        let limit = freeLogLimit > 0 ? freeLogLimit : 7
-        
-        return totalLogCount < limit
+        return true
     }
     
     // MARK: - Presets

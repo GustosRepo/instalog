@@ -185,9 +185,14 @@ const InboxScreen: React.FC = () => {
           data={[]}
           ListHeaderComponent={() => (
             <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 16}}>
-              <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>
-                Inbox
-              </Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>
+                  Inbox
+                </Text>
+                <TouchableOpacity onPress={() => (navigation as any).navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4}}>
                 {todayLogs.length} {todayLogs.length === 1 ? 'log' : 'logs'} today
               </Text>

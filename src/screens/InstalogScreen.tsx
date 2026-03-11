@@ -14,6 +14,7 @@ import {
   Text,
   Keyboard,
   ImageBackground,
+  Image,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -21,9 +22,11 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
-import {useSubscriptionStore, FREE_LOG_LIMIT} from '../stores/useSubscriptionStore';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {useHintsStore} from '../stores/useHintsStore';
 import {Haptics} from '../utils/haptics';
+import {MOODS} from '../utils/moods';
+import {maybeRequestReview} from '../utils/storeReview';
 
 const InstalogScreen: React.FC = () => {
   const [text, setText] = useState('');
@@ -37,12 +40,11 @@ const InstalogScreen: React.FC = () => {
   const successScale = useRef(new Animated.Value(0)).current;
   const successOpacity = useRef(new Animated.Value(0)).current;
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMilestone, setShowMilestone] = useState(false);
   
   const instalog = useLogStore(state => state.instalog);
-  const {canCreateLog, logsRemaining, isPro, incrementLogCount} = useSubscriptionStore();
+  const {isPro, incrementLogCount, totalLogCount} = useSubscriptionStore();
   const {hasSeenFirstTap, markFirstTapSeen, hasSeenWrapUpToast, markWrapUpToastSeen, loadHints} = useHintsStore();
-  const logsLeftVisibilityThreshold = Math.max(1, FREE_LOG_LIMIT - 2);
-  const logsLeftWarningThreshold = Math.max(1, Math.floor(FREE_LOG_LIMIT / 3));
 
   useEffect(() => {
     loadHints();
@@ -93,13 +95,6 @@ const InstalogScreen: React.FC = () => {
       return;
     }
 
-    // Check if user can create logs
-    if (!canCreateLog) {
-      Haptics.warning();
-      navigation.navigate('Paywall');
-      return;
-    }
-
     // Button press animation
     Animated.sequence([
       Animated.timing(buttonScale, {
@@ -118,6 +113,16 @@ const InstalogScreen: React.FC = () => {
     // Save the log
     instalog({text: trimmedText});
     incrementLogCount();
+
+    // Milestone check — show shocked mood
+    const newCount = totalLogCount + 1;
+    const isMilestone = newCount === 1 || newCount === 10 || newCount === 50 || newCount === 100 || newCount === 500;
+    setShowMilestone(isMilestone);
+
+    // Ask for a review at meaningful milestones (10, 50, 100 logs)
+    if (newCount === 10 || newCount === 50 || newCount === 100) {
+      setTimeout(() => maybeRequestReview(), 1500);
+    }
 
     // Success haptic feedback
     Haptics.success();
@@ -155,7 +160,7 @@ const InstalogScreen: React.FC = () => {
     // Clear input and dismiss keyboard
     setText('');
     Keyboard.dismiss();
-  }, [text, instalog, canCreateLog, navigation, incrementLogCount, hasSeenWrapUpToast, markWrapUpToastSeen, buttonScale, successScale, successOpacity]);
+  }, [text, instalog, navigation, incrementLogCount, hasSeenWrapUpToast, markWrapUpToastSeen, buttonScale, successScale, successOpacity]);
 
   return (
     <KeyboardAvoidingView 
@@ -176,13 +181,18 @@ const InstalogScreen: React.FC = () => {
           <Text style={{color: '#9AA0A6', fontSize: 16, opacity: 0.7, fontWeight: '600'}}>
             Instalog
           </Text>
-          {!isPro && logsRemaining <= logsLeftVisibilityThreshold && (
-            <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
-              <Text style={{color: logsRemaining <= logsLeftWarningThreshold ? '#EF4444' : '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
-                {logsRemaining} logs left
-              </Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+            {!isPro && (
+              <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+                <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>
+                  Go Pro
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
       {/* Main content area */}
@@ -239,23 +249,18 @@ const InstalogScreen: React.FC = () => {
         {showSuccess && (
           <Animated.View style={{
             position: 'absolute',
-            top: -60,
+            top: -80,
             left: 0,
             right: 0,
             alignItems: 'center',
             opacity: successOpacity,
             transform: [{scale: successScale}],
           }}>
-            <View style={{
-              backgroundColor: '#22C55E',
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Text style={{color: '#FFFFFF', fontSize: 24}}>✓</Text>
-            </View>
+            <Image
+              source={showMilestone ? MOODS.shocked : MOODS.happy}
+              style={{width: 64, height: 64}}
+              resizeMode="contain"
+            />
           </Animated.View>
         )}
         
