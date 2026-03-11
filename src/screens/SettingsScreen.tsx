@@ -45,7 +45,7 @@ const SettingsScreen: React.FC = () => {
         logs,
         buckets,
         exportedAt: new Date().toISOString(),
-        version: '1.0.2',
+        version: '1.0.3',
       };
 
       const jsonString = JSON.stringify(exportData, null, 2);
