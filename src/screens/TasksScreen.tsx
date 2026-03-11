@@ -108,6 +108,7 @@ const ClockFace: React.FC<{
 
   // Tasks with due times for arcs
   const timedTasks = tasks.filter(t => t.dueTime && !t.completedAt);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   return (
     <View style={{alignItems: 'center', marginBottom: 16}}>
@@ -172,16 +173,22 @@ const ClockFace: React.FC<{
           if (arcR < 30) return null; // Don't draw if too many tasks overlap
 
           const arcPath = describeArc(CENTER, CENTER, arcR, startAngle, endAngle);
+          const isSelected = selectedTaskId === task.id;
+          const isOtherSelected = selectedTaskId !== null && !isSelected;
 
           return (
             <Path
               key={task.id}
               d={arcPath}
               stroke={color}
-              strokeWidth={6}
+              strokeWidth={isSelected ? 10 : 6}
               strokeLinecap="round"
               fill="none"
-              opacity={0.85}
+              opacity={isSelected ? 1 : isOtherSelected ? 0.25 : 0.85}
+              onPress={() => {
+                setSelectedTaskId(isSelected ? null : task.id);
+                onTaskPress(task);
+              }}
             />
           );
         })}
@@ -220,27 +227,37 @@ const ClockFace: React.FC<{
             return (
               <TouchableOpacity
                 key={task.id}
-                onPress={() => onTaskPress(task)}
+                onPress={() => {
+                  const isAlreadySelected = selectedTaskId === task.id;
+                  setSelectedTaskId(isAlreadySelected ? null : task.id);
+                  onTaskPress(task);
+                }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingVertical: 6,
+                  opacity: selectedTaskId !== null && selectedTaskId !== task.id ? 0.4 : 1,
                 }}>
                 <View
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
+                    width: selectedTaskId === task.id ? 12 : 10,
+                    height: selectedTaskId === task.id ? 12 : 10,
+                    borderRadius: 6,
                     backgroundColor: color,
                     marginRight: 10,
                   }}
                 />
                 <Text
-                  style={{color: '#EDEEF0', fontSize: 14, flex: 1}}
+                  style={{
+                    color: '#EDEEF0',
+                    fontSize: 14,
+                    flex: 1,
+                    fontWeight: selectedTaskId === task.id ? '600' : '400',
+                  }}
                   numberOfLines={1}>
                   {task.text}
                 </Text>
-                <Text style={{color: '#9AA0A6', fontSize: 12}}>
+                <Text style={{color: selectedTaskId === task.id ? color : '#9AA0A6', fontSize: 12}}>
                   {formatTime(task.dueTime!)}
                 </Text>
               </TouchableOpacity>
@@ -597,7 +614,7 @@ const TasksScreen: React.FC = () => {
         </View>
 
         <ScrollView
-          contentContainerStyle={{paddingHorizontal: 16, paddingBottom: 120}}
+          contentContainerStyle={{paddingHorizontal: 16, paddingBottom: 16}}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {/* Clock — Pro only */}
@@ -773,10 +790,6 @@ const TasksScreen: React.FC = () => {
         {/* Add task input */}
         <View
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
             backgroundColor: '#0B0D10',
             borderTopWidth: 1,
             borderTopColor: 'rgba(154, 160, 166, 0.1)',
