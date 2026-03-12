@@ -4,6 +4,7 @@
  */
 
 import React, {useEffect, useRef} from 'react';
+import {useTranslation} from 'react-i18next';
 import {NavigationContainer, createNavigationContainerRef, useNavigation} from '@react-navigation/native';
 
 export const navigationRef = createNavigationContainerRef();
@@ -67,6 +68,7 @@ const ProGateScreen: React.FC<{
 }> = ({screen, emoji, title, description}) => {
   const isPro = useSubscriptionStore(state => state.isPro);
   const navigation = useNavigation();
+  const {t} = useTranslation();
 
   if (isPro) return screen;
 
@@ -87,22 +89,26 @@ const ProGateScreen: React.FC<{
           paddingVertical: 14,
           paddingHorizontal: 32,
         }}>
-        <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Upgrade to Pro</Text>
+        <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>{t('nav.proGateUpgradeButton')}</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-const ProReviewScreen = () => (
-  <ProGateScreen
-    screen={<ReviewScreen />}
-    emoji="◐"
-    title="Review is a Pro feature"
-    description="Unlock heatmaps, mood insights, search, and daily reflection across all your logs."
-  />
-);
+const ProReviewScreen = () => {
+  const {t} = useTranslation();
+  return (
+    <ProGateScreen
+      screen={<ReviewScreen />}
+      emoji="◐"
+      title={t('nav.proGateReviewTitle')}
+      description={t('nav.proGateReviewDescription')}
+    />
+  );
+};
 
 const TabNavigator: React.FC = () => {
+  const {t} = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -126,6 +132,7 @@ const TabNavigator: React.FC = () => {
           name="Instalog"
           component={InstalogScreen}
           options={{
+            tabBarLabel: t('nav.tabInstalog'),
             tabBarIcon: ({focused}) => <TabIcon label="+" focused={focused} />,
           }}
         />
@@ -133,6 +140,7 @@ const TabNavigator: React.FC = () => {
           name="Inbox"
           component={InboxScreen}
           options={{
+            tabBarLabel: t('nav.tabInbox'),
             tabBarIcon: ({focused}) => <TabIcon label="📥" focused={focused} />,
           }}
         />
@@ -140,6 +148,7 @@ const TabNavigator: React.FC = () => {
           name="Tasks"
           component={TasksScreen}
           options={{
+            tabBarLabel: t('nav.tabTasks'),
             tabBarIcon: ({focused}) => <TabIcon label="📋" focused={focused} />,
           }}
         />
@@ -147,6 +156,7 @@ const TabNavigator: React.FC = () => {
           name="Library"
           component={LibraryScreen}
           options={{
+            tabBarLabel: t('nav.tabLibrary'),
             tabBarIcon: ({focused}) => <TabIcon label="📚" focused={focused} />,
           }}
         />
@@ -154,6 +164,7 @@ const TabNavigator: React.FC = () => {
           name="Wrap Up"
           component={WrapUpScreen}
           options={{
+            tabBarLabel: t('nav.tabWrapUp'),
             tabBarIcon: ({focused}) => <TabIcon label="✓" focused={focused} />,
           }}
         />
@@ -161,6 +172,7 @@ const TabNavigator: React.FC = () => {
           name="Review"
           component={ReviewScreen}
           options={{
+            tabBarLabel: t('nav.tabReview'),
             tabBarIcon: ({focused}) => <TabIcon label="◐" focused={focused} />,
           }}
         />

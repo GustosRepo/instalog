@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {Haptics} from '../utils/haptics';
 
@@ -34,6 +35,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
   showDismiss = true,
 }) => {
   const navigation = useNavigation();
+  const {t} = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -74,15 +76,15 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         Haptics.success();
         
         Alert.alert(
-          'Welcome to Pro',
-          'Clock view, reminders, insights, and more — all yours.',
-          [{text: 'Continue', onPress: () => onDismiss?.() || navigation.goBack()}]
+          t('paywall.alertWelcomeTitle'),
+          t('paywall.alertWelcomeMessage'),
+          [{text: t('paywall.alertWelcomeContinue'), onPress: () => onDismiss?.() || navigation.goBack()}]
         );
       } else {
-        Alert.alert('Purchase Failed', 'Please try again or contact support.');
+        Alert.alert(t('paywall.alertPurchaseFailedTitle'), t('paywall.alertPurchaseFailedMessage'));
       }
     } catch (error) {
-      Alert.alert('Purchase Failed', 'Please try again or contact support.');
+      Alert.alert(t('paywall.alertPurchaseFailedTitle'), t('paywall.alertPurchaseFailedMessage'));
     } finally {
       setIsLoading(false);
     }
@@ -97,13 +99,13 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
       
       if (restored) {
         Haptics.success();
-        Alert.alert('Restored', 'Your Pro subscription has been restored.');
+        Alert.alert(t('paywall.alertRestoredTitle'), t('paywall.alertRestoredMessage'));
         onDismiss?.() || navigation.goBack();
       } else {
-        Alert.alert('No Subscription Found', 'We couldn\'t find an active subscription for your Apple ID.');
+        Alert.alert(t('paywall.alertNoSubTitle'), t('paywall.alertNoSubMessage'));
       }
     } catch (error) {
-      Alert.alert('Restore Failed', 'Please try again.');
+      Alert.alert(t('paywall.alertRestoreFailedTitle'), t('paywall.alertRestoreFailedMessage'));
     } finally {
       setIsRestoring(false);
     }
@@ -128,7 +130,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             onPress={handleDismiss}
             style={{alignSelf: 'flex-end', paddingVertical: 12}}
           >
-            <Text style={{color: '#9AA0A6', fontSize: 16}}>Maybe later</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 16}}>{t('paywall.dismissButton')}</Text>
           </TouchableOpacity>
         )}
         
@@ -157,7 +159,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           textAlign: 'center',
           marginBottom: 10,
         }}>
-          Do more with Pro
+          {t('paywall.headline')}
         </Text>
         
         {/* Subheadline */}
@@ -169,17 +171,17 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           marginBottom: 24,
           paddingHorizontal: 16,
         }}>
-          Unlock the full planner experience.
+          {t('paywall.subheadline')}
         </Text>
         
         {/* Benefits */}
         <View style={{marginBottom: 24}}>
           {[
-            '📝 Write directly — compose thoughts, ideas & notes in-feed',
-            '🕐 Clock view — visualize and time-block your day',
-            '📊 Review — heatmap, search & mood insights',
-            '🎛️ Multi-action widget — up to 4 quick capture buttons',
-            '📤 Data export — your data, your control',
+            t('paywall.benefit1'),
+            t('paywall.benefit2'),
+            t('paywall.benefit3'),
+            t('paywall.benefit4'),
+            t('paywall.benefit5'),
           ].map((benefit, index) => (
             <View key={index} style={{flexDirection: 'row', marginBottom: 12, paddingHorizontal: 8}}>
               <Text style={{color: '#EDEEF0', fontSize: 15, flex: 1, lineHeight: 22}}>
@@ -194,7 +196,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           {isLoadingProducts ? (
             <View style={{alignItems: 'center', paddingVertical: 32}}>
               <ActivityIndicator color="#6E6AF2" />
-              <Text style={{color: '#9AA0A6', marginTop: 8}}>Loading prices...</Text>
+              <Text style={{color: '#9AA0A6', marginTop: 8}}>{t('paywall.loadingPrices')}</Text>
             </View>
           ) : (
             <>
@@ -216,10 +218,10 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
               >
                 <View style={{flex: 1, paddingRight: 12}}>
                   <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-                    Yearly
+                    {t('paywall.planYearlyTitle')}
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-                    12-month subscription · billed annually
+                    {t('paywall.planYearlySubtitle')}
                   </Text>
                 </View>
                 <View style={{alignItems: 'flex-end', paddingRight: 2}}>
@@ -227,7 +229,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                     {yearlyProduct?.displayPrice ?? '$19.99'}
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
-                    per year
+                    {t('paywall.planYearlyPerPeriod')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -249,10 +251,10 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
               >
                 <View style={{flex: 1, paddingRight: 12}}>
                   <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-                    Monthly
+                    {t('paywall.planMonthlyTitle')}
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-                    1-month subscription · billed monthly
+                    {t('paywall.planMonthlySubtitle')}
                   </Text>
                 </View>
                 <View style={{alignItems: 'flex-end', paddingRight: 2}}>
@@ -260,7 +262,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                     {monthlyProduct?.displayPrice ?? '$3.99'}
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
-                    per month
+                    {t('paywall.planMonthlyPerPeriod')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -278,7 +280,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             paddingHorizontal: 8,
           }}
         >
-          You will be charged {selectedDisplayPrice} per {selectedBillingPeriod}. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.
+          {t('paywall.legalChargeNotice', {price: selectedDisplayPrice, period: selectedBillingPeriod})}
         </Text>
         
         {/* CTA Button */}
@@ -298,7 +300,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={{color: '#FFFFFF', fontSize: 17, fontWeight: '600'}}>
-              Continue · {selectedDisplayPrice}/{selectedBillingPeriod}
+              {t('paywall.ctaButton', {price: selectedDisplayPrice, period: selectedBillingPeriod})}
             </Text>
           )}
         </TouchableOpacity>
@@ -313,7 +315,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <ActivityIndicator color="#9AA0A6" size="small" />
           ) : (
             <Text style={{color: '#9AA0A6', fontSize: 14}}>
-              Restore Purchases
+              {t('paywall.restoreButton')}
             </Text>
           )}
         </TouchableOpacity>
@@ -327,19 +329,19 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           marginTop: 8,
           marginBottom: 16,
         }}>
-          Instalog Pro auto-renewable subscription. Cancel anytime in Settings.{"\n"}
+          {t('paywall.legalAutoRenew')}{"\n"}
           <Text
             onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
             style={{textDecorationLine: 'underline'}}
           >
-            Terms of Use (EULA)
+            {t('paywall.legalEULA')}
           </Text>
           {' · '}
           <Text
             onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
             style={{textDecorationLine: 'underline'}}
           >
-            Privacy Policy
+            {t('paywall.legalPrivacyPolicy')}
           </Text>
         </Text>
       </ScrollView>

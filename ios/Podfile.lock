@@ -46,6 +46,8 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (15.0.8):
     - ExpoModulesCore
+  - ExpoLocalization (55.0.8):
+    - ExpoModulesCore
   - ExpoModulesCore (3.0.29):
     - boost
     - DoubleConversion
@@ -2717,6 +2719,7 @@ DEPENDENCIES:
   - ExpoFileSystem (from `../node_modules/expo/node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo/node_modules/expo-font/ios`)
   - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
+  - ExpoLocalization (from `../node_modules/expo-localization/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoStoreReview (from `../node_modules/expo-store-review/ios`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
@@ -2825,6 +2828,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo/node_modules/expo-font/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo/node_modules/expo-keep-awake/ios"
+  ExpoLocalization:
+    :path: "../node_modules/expo-localization/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
   ExpoStoreReview:
@@ -2996,6 +3001,7 @@ SPEC CHECKSUMS:
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
   ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
+  ExpoLocalization: 72770c847c00bff938bd11bfd614dbfbe2d96fa1
   ExpoModulesCore: d86dab8a6c8f1184f9b0b0503ace93919882aa15
   ExpoStoreReview: 32bb43b6fae9c8db3e33cad69996dff3785eef5f
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6

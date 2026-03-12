@@ -16,6 +16,8 @@ import {useLogStore} from './src/stores/useLogStore';
 import {useSubscriptionStore} from './src/stores/useSubscriptionStore';
 import {useHintsStore} from './src/stores/useHintsStore';
 import {useTaskStore} from './src/stores/useTaskStore';
+import {useLanguageStore} from './src/stores/useLanguageStore';
+import './src/i18n'; // initialize i18n
 
 const {StoreKitModule} = NativeModules;
 
@@ -23,6 +25,7 @@ function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
   const instalog = useLogStore(state => state.instalog);
   const refreshLogs = useLogStore(state => state.refreshLogs);
+  const loadSavedLanguage = useLanguageStore(state => state.loadSavedLanguage);
   const refreshBuckets = useLogStore(state => state.refreshBuckets);
   const refreshSubscription = useSubscriptionStore(state => state.refreshSubscription);
   const isPro = useSubscriptionStore(state => state.isPro);
@@ -94,6 +97,7 @@ function App(): React.JSX.Element {
   useEffect(() => {
     // Initialize storage
     storage.init().then(() => {
+      loadSavedLanguage();
       refreshLogs();
       refreshBuckets();
       refreshSubscription();

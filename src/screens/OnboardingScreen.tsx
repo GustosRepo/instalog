@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import {useOnboardingStore} from '../stores/useOnboardingStore';
 import {Haptics} from '../utils/haptics';
+import {useTranslation} from 'react-i18next';
 
 const {width, height} = Dimensions.get('window');
 
@@ -27,37 +28,18 @@ interface OnboardingSlide {
   emoji: string;
 }
 
-const slides: OnboardingSlide[] = [
-  {
-    id: 1,
-    title: 'Log in 1 tap',
-    subtitle: 'Capture accomplishments instantly.\nNo typing required.',
-    emoji: '⚡',
-  },
-  {
-    id: 2,
-    title: 'Sort later',
-    subtitle: 'Organize when you have time.\nBuckets are always optional.',
-    emoji: '🪣',
-  },
-  {
-    id: 3,
-    title: 'Plan your day',
-    subtitle: 'Add tasks and see them on a clock.\nYour pace, your plan.',
-    emoji: '🕐',
-  },
-  {
-    id: 4,
-    title: 'See your momentum',
-    subtitle: 'Reflect on what you got done.\nCalm, no pressure.',
-    emoji: '📈',
-  },
-];
-
 const OnboardingScreen: React.FC = () => {
+  const {t} = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const {completeOnboarding} = useOnboardingStore();
+
+  const slides: OnboardingSlide[] = [
+    {id: 1, title: t('onboarding.slide1Title'), subtitle: t('onboarding.slide1Subtitle'), emoji: '⚡'},
+    {id: 2, title: t('onboarding.slide2Title'), subtitle: t('onboarding.slide2Subtitle'), emoji: '🪣'},
+    {id: 3, title: t('onboarding.slide3Title'), subtitle: t('onboarding.slide3Subtitle'), emoji: '🕐'},
+    {id: 4, title: t('onboarding.slide4Title'), subtitle: t('onboarding.slide4Subtitle'), emoji: '📈'},
+  ];
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -131,7 +113,7 @@ const OnboardingScreen: React.FC = () => {
         }}
       >
         <Text style={{color: '#9AA0A6', fontSize: 16, fontWeight: '500'}}>
-          Skip
+          {t('onboarding.skipButton')}
         </Text>
       </TouchableOpacity>
 
@@ -234,7 +216,7 @@ const OnboardingScreen: React.FC = () => {
           }}
         >
           <Text style={{color: '#FFFFFF', fontSize: 18, fontWeight: '600'}}>
-            {isLastSlide ? 'Get Started' : 'Next'}
+            {isLastSlide ? t('onboarding.getStartedButton') : t('onboarding.nextButton')}
           </Text>
         </TouchableOpacity>
       </View>

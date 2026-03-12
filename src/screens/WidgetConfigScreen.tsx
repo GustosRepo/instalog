@@ -21,6 +21,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Haptics} from '../utils/haptics';
 import {WidgetActionType, WidgetActionConfig, WidgetConfigState} from '../models/types';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
+import {useTranslation} from 'react-i18next';
 
 const {WidgetPresetsModule} = NativeModules;
 
@@ -114,8 +115,42 @@ const DEFAULT_CONFIG: WidgetConfigState = {
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
 const WidgetConfigScreen: React.FC = () => {
+  const {t} = useTranslation();
   const navigation = useNavigation();
   const isPro = useSubscriptionStore(state => state.isPro);
+
+  const getActionLabel = (type: WidgetActionType) => {
+    const map: Record<WidgetActionType, string> = {
+      thought: t('widgetConfig.actionThoughtLabel'),
+      task: t('widgetConfig.actionTaskLabel'),
+      idea: t('widgetConfig.actionIdeaLabel'),
+      mood: t('widgetConfig.actionMoodLabel'),
+      brainDump: t('widgetConfig.actionBrainDumpLabel'),
+    };
+    return map[type];
+  };
+
+  const getActionDescription = (type: WidgetActionType) => {
+    const map: Record<WidgetActionType, string> = {
+      thought: t('widgetConfig.actionThoughtDescription'),
+      task: t('widgetConfig.actionTaskDescription'),
+      idea: t('widgetConfig.actionIdeaDescription'),
+      mood: t('widgetConfig.actionMoodDescription'),
+      brainDump: t('widgetConfig.actionBrainDumpDescription'),
+    };
+    return map[type];
+  };
+
+  const getActionDefaultLabel = (type: WidgetActionType) => {
+    const map: Record<WidgetActionType, string> = {
+      thought: t('widgetConfig.actionThoughtDefaultLabel'),
+      task: t('widgetConfig.actionTaskDefaultLabel'),
+      idea: t('widgetConfig.actionIdeaDefaultLabel'),
+      mood: t('widgetConfig.actionMoodDefaultLabel'),
+      brainDump: t('widgetConfig.actionBrainDumpDefaultLabel'),
+    };
+    return map[type];
+  };
   const [config, setConfig] = useState<WidgetConfigState>(DEFAULT_CONFIG);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showActionPicker, setShowActionPicker] = useState(false);
@@ -168,7 +203,7 @@ const WidgetConfigScreen: React.FC = () => {
 
   const saveConfig = async () => {
     if (!WidgetPresetsModule) {
-      Alert.alert('Error', 'Widget configuration is only available on iOS.');
+      Alert.alert(t('widgetConfig.errorTitle'), t('widgetConfig.errorIOSOnly'));
       return;
     }
     const maxActions = !isPro ? 1 : config.layout === 'single' ? 1 : 4;
@@ -177,15 +212,15 @@ const WidgetConfigScreen: React.FC = () => {
       actions: config.actions.slice(0, maxActions),
     };
     if (!WidgetPresetsModule.setWidgetConfig) {
-      Alert.alert('Error', 'setWidgetConfig not available — rebuild the app from Xcode.');
+      Alert.alert(t('widgetConfig.errorTitle'), t('widgetConfig.errorRebuildRequired'));
       return;
     }
     try {
       await WidgetPresetsModule.setWidgetConfig(JSON.stringify(trimmed));
       Haptics.success();
-      Alert.alert('Saved ✓', 'Widget updated. Long-press your Home Screen to add the Instalog widget.');
+      Alert.alert(t('widgetConfig.savedAlertTitle'), t('widgetConfig.savedAlertMessage'));
     } catch (e: any) {
-      Alert.alert('Error', `Failed to save widget config: ${e?.message ?? String(e)}`);
+      Alert.alert(t('widgetConfig.errorTitle'), `Failed to save widget config: ${e?.message ?? String(e)}`);
     }
   };
 
@@ -220,13 +255,13 @@ const WidgetConfigScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={{marginBottom: 16}}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <Text style={{color: '#6E6AF2', fontSize: 16}}>← Back</Text>
+          <Text style={{color: '#6E6AF2', fontSize: 16}}>{t('widgetConfig.backButton')}</Text>
         </TouchableOpacity>
         <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>
-          Quick Capture
+          {t('widgetConfig.screenTitle')}
         </Text>
         <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4, marginBottom: 24}}>
-          Capture first, organize later — right from your Home Screen
+          {t('widgetConfig.screenSubtitle')}
         </Text>
       </View>
 
@@ -235,7 +270,7 @@ const WidgetConfigScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}>
 
         {/* ─── Layout ─── */}
-        <SectionLabel>WIDGET LAYOUT</SectionLabel>
+        <SectionLabel>{t('widgetConfig.layoutSectionLabel')}</SectionLabel>
         <View style={{flexDirection: 'row', gap: 10, marginBottom: 28}}>
           {(['single', 'multi'] as const).map(l => {
             const isLocked = l === 'multi' && !isPro;
@@ -262,10 +297,10 @@ const WidgetConfigScreen: React.FC = () => {
                 color: config.layout === l ? '#EDEEF0' : '#9AA0A6',
                 fontSize: 14, fontWeight: '600',
               }}>
-                {l === 'single' ? 'Single' : 'Multi'}{isLocked ? ' ⭐' : ''}
+                {l === 'single' ? t('widgetConfig.layoutSingle') : t('widgetConfig.layoutMulti')}{isLocked ? ' ⭐' : ''}
               </Text>
               <Text style={{color: '#4B5563', fontSize: 11, textAlign: 'center'}}>
-                {l === 'single' ? '1 action' : 'Up to 4 actions'}
+                {l === 'single' ? t('widgetConfig.layoutSingleDescription') : t('widgetConfig.layoutMultiDescription')}
               </Text>
             </TouchableOpacity>
           );
@@ -306,7 +341,7 @@ const WidgetConfigScreen: React.FC = () => {
                     {action.label}
                   </Text>
                   <Text style={{color: '#4B5563', fontSize: 11, marginTop: 1}}>
-                    {meta.label}{meta.deepLink ? ' · Opens app' : ' · Saves instantly'}
+                    {getActionLabel(action.type)}{meta.deepLink ? ` · ${t('widgetConfig.sublabelOpensApp')}` : ` · ${t('widgetConfig.sublabelSavesInstantly')}`}
                   </Text>
                 </View>
                 {config.actions.length > 1 && (
@@ -329,18 +364,18 @@ const WidgetConfigScreen: React.FC = () => {
                   {/* Action type */}
                   <View>
                     <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 8}}>
-                      Action Type
+                      {t('widgetConfig.actionTypeFieldLabel')}
                     </Text>
                     <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 6}}>
-                      {ALL_ACTION_TYPES.map(t => {
-                        const m = ACTION_META[t];
-                        const selected = action.type === t;
+                      {ALL_ACTION_TYPES.map(actionType => {
+                        const m = ACTION_META[actionType];
+                        const selected = action.type === actionType;
                         return (
                           <TouchableOpacity
-                            key={t}
+                            key={actionType}
                             onPress={() => {
                               updateAction(action.id, {
-                                type: t,
+                                type: actionType,
                                 icon: m.icon,
                                 saveInstantly: !m.deepLink,
                                 openAppAfterTap: m.deepLink,
@@ -356,7 +391,7 @@ const WidgetConfigScreen: React.FC = () => {
                             }}>
                             <Text style={{fontSize: 12}}>{m.emoji}</Text>
                             <Text style={{color: selected ? m.color : '#9AA0A6', fontSize: 12}}>
-                              {m.label}
+                              {getActionLabel(actionType)}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -367,12 +402,12 @@ const WidgetConfigScreen: React.FC = () => {
                   {/* Custom label */}
                   <View>
                     <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 6}}>
-                      Button Label
+                      {t('widgetConfig.buttonLabelFieldLabel')}
                     </Text>
                     <TextInput
                       value={action.label}
-                      onChangeText={t => updateAction(action.id, {label: t})}
-                      placeholder={meta.defaultLabel}
+                      onChangeText={actionType => updateAction(action.id, {label: actionType})}
+                      placeholder={getActionDefaultLabel(action.type)}
                       placeholderTextColor="#4B5563"
                       maxLength={16}
                       style={{
@@ -398,8 +433,8 @@ const WidgetConfigScreen: React.FC = () => {
               borderWidth: 2, borderColor: '#6E6AF244', borderStyle: 'dashed',
               borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 28,
             }}>
-            <Text style={{color: '#6E6AF2', fontSize: 15, fontWeight: '600'}}>
-              + Add Action
+            <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600'}}>
+              {t('widgetConfig.addActionButton')}
             </Text>
           </TouchableOpacity>
         )}
@@ -407,9 +442,9 @@ const WidgetConfigScreen: React.FC = () => {
         {/* ─── Display Settings ─── */}
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10}}>
           <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6}}>
-            DISPLAY SETTINGS
+            {t('widgetConfig.displaySettingsLabel')}
           </Text>
-          {!isPro && <Text style={{color: '#F59E0B', fontSize: 11, fontWeight: '700'}}>⭐ PRO</Text>}
+          {!isPro && <Text style={{color: '#F59E0B', fontSize: 11, fontWeight: '700'}}>{t('widgetConfig.proBadge')}</Text>}
         </View>
         <TouchableOpacity
           activeOpacity={isPro ? 1 : 0.85}
@@ -419,16 +454,16 @@ const WidgetConfigScreen: React.FC = () => {
             pointerEvents={isPro ? 'auto' : 'none'}
             style={{opacity: isPro ? 1 : 0.4, backgroundColor: '#141821', borderRadius: 14, overflow: 'hidden', marginBottom: 28}}>
             <ToggleRow
-              label="Show unprocessed count"
-              sublabel="Inbox badge on the widget"
+              label={t('widgetConfig.toggleUnprocessedCountLabel')}
+              sublabel={t('widgetConfig.toggleUnprocessedCountSublabel')}
               value={config.showUnprocessedCount}
               onChange={v => setConfig(c => ({...c, showUnprocessedCount: v}))}
               padded
             />
             <View style={{height: 1, backgroundColor: '#1F2330'}} />
             <ToggleRow
-              label="Show today's mood"
-              sublabel="Brain mood on widget if space allows"
+              label={t('widgetConfig.toggleTodayMoodLabel')}
+              sublabel={t('widgetConfig.toggleTodayMoodSublabel')}
               value={config.showTodayMood}
               onChange={v => setConfig(c => ({...c, showTodayMood: v}))}
               padded
@@ -445,12 +480,12 @@ const WidgetConfigScreen: React.FC = () => {
           }}
           activeOpacity={0.8}>
           <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-            Save &amp; Update Widget
+            {t('widgetConfig.saveButton')}
           </Text>
         </TouchableOpacity>
 
         <Text style={{color: '#4B5563', fontSize: 13, textAlign: 'center', lineHeight: 18}}>
-          Long-press your Home Screen → tap + → find Instalog
+          {t('widgetConfig.homeScreenInstruction')}
         </Text>
       </ScrollView>
 
@@ -468,18 +503,18 @@ const WidgetConfigScreen: React.FC = () => {
             }}
             onStartShouldSetResponder={() => true}>
             <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '700', marginBottom: 4}}>
-              Add Action
+              {t('widgetConfig.addActionModalTitle')}
             </Text>
             <Text style={{color: '#9AA0A6', fontSize: 13, marginBottom: 20}}>
-              What should this widget button do?
+              {t('widgetConfig.addActionModalSubtitle')}
             </Text>
-            {ALL_ACTION_TYPES.map(t => {
-              const m = ACTION_META[t];
-              const added = config.actions.some(a => a.type === t);
+            {ALL_ACTION_TYPES.map(actionType => {
+              const m = ACTION_META[actionType];
+              const added = config.actions.some(a => a.type === actionType);
               return (
                 <TouchableOpacity
-                  key={t}
-                  onPress={() => !added && addAction(t)}
+                  key={actionType}
+                  onPress={() => !added && addAction(actionType)}
                   style={{
                     flexDirection: 'row', alignItems: 'center', gap: 14,
                     paddingVertical: 14,
@@ -495,14 +530,14 @@ const WidgetConfigScreen: React.FC = () => {
                   </View>
                   <View style={{flex: 1}}>
                     <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600'}}>
-                      {m.label}
+                      {getActionLabel(actionType)}
                     </Text>
                     <Text style={{color: '#4B5563', fontSize: 12, marginTop: 2}}>
-                      {m.description}
+                      {getActionDescription(actionType)}
                     </Text>
                   </View>
                   <Text style={{color: added ? '#4B5563' : m.color, fontSize: added ? 12 : 22}}>
-                    {added ? 'Added' : '+'}
+                    {added ? t('widgetConfig.addActionAddedLabel') : '+'}
                   </Text>
                 </TouchableOpacity>
               );
@@ -513,7 +548,7 @@ const WidgetConfigScreen: React.FC = () => {
                 marginTop: 20, paddingVertical: 14, alignItems: 'center',
                 backgroundColor: '#0B0D10', borderRadius: 14,
               }}>
-              <Text style={{color: '#9AA0A6', fontSize: 16}}>Cancel</Text>
+              <Text style={{color: '#9AA0A6', fontSize: 16}}>{t('widgetConfig.addActionCancelButton')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

@@ -23,6 +23,7 @@ import {LogEntry, LogItemType, formatTime} from '../models/types';
 import {ConfirmableType} from '../utils/categorize';
 import {Haptics} from '../utils/haptics';
 import {MOODS} from '../utils/moods';
+import {useTranslation} from 'react-i18next';
 
 // ─── Type metadata ────────────────────────────────────────────────────────────
 
@@ -47,6 +48,18 @@ interface ItemCardProps {
 
 const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete}) => {
   const [picking, setPicking] = useState(false);
+  const {t} = useTranslation();
+
+  const getTypeLabel = (type: ConfirmableType) => {
+    const labels: Record<ConfirmableType, string> = {
+      task: t('inbox.typeTask'),
+      note: t('inbox.typeNote'),
+      idea: t('inbox.typeIdea'),
+      mood: t('inbox.typeMood'),
+      thought: t('inbox.typeThought'),
+    };
+    return labels[type];
+  };
 
   const suggested = (item.suggestedType ?? 'thought') as ConfirmableType;
   const meta = TYPE_META[suggested];
@@ -87,7 +100,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
         }}>
           <Text style={{fontSize: 12}}>{meta.emoji}</Text>
           <Text style={{color: meta.color, fontSize: 12, fontWeight: '600'}}>
-            {meta.label}
+            {getTypeLabel(suggested)}
           </Text>
         </View>
         <Text style={{color: '#4B5563', fontSize: 12}}>{formatTime(item.timestamp)}</Text>
@@ -101,16 +114,16 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
       }}>
         {picking ? (
           <>
-            {TYPE_ORDER.map(t => {
-              const m = TYPE_META[t];
-              const isActive = t === suggested;
+            {TYPE_ORDER.map(typeKey => {
+              const m = TYPE_META[typeKey];
+              const isActive = typeKey === suggested;
               return (
                 <TouchableOpacity
-                  key={t}
+                  key={typeKey}
                   onPress={() => {
                     Haptics.light();
                     setPicking(false);
-                    onConfirm(t);
+                    onConfirm(typeKey);
                   }}
                   style={{
                     flex: 1, alignItems: 'center', paddingVertical: 8,
@@ -121,7 +134,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
                   }}>
                   <Text style={{fontSize: 14}}>{m.emoji}</Text>
                   <Text style={{color: m.color, fontSize: 9, fontWeight: '600', marginTop: 2}}>
-                    {m.label}
+                    {getTypeLabel(typeKey)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -153,7 +166,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
                 paddingVertical: 10,
               }}>
               <Text style={{color: meta.color, fontSize: 15, lineHeight: 18}}>✓</Text>
-              <Text style={{color: meta.color, fontSize: 13, fontWeight: '600'}}>Confirm</Text>
+              <Text style={{color: meta.color, fontSize: 13, fontWeight: '600'}}>{t('inbox.confirmButton')}</Text>
             </TouchableOpacity>
 
             {/* Change */}
@@ -168,7 +181,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
                 borderWidth: 1, borderColor: '#232936',
                 paddingVertical: 10,
               }}>
-              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>Change</Text>
+              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>{t('inbox.changeButton')}</Text>
             </TouchableOpacity>
 
             {/* Archive */}
@@ -211,6 +224,7 @@ const ItemCard: React.FC<ItemCardProps> = ({item, onConfirm, onArchive, onDelete
 // ─── InboxScreen ──────────────────────────────────────────────────────────────
 
 const InboxScreen: React.FC = () => {
+  const {t} = useTranslation();
   const navigation = useNavigation<any>();
   const logs = useLogStore(state => state.logs);
   const processItem = useLogStore(state => state.processItem);
@@ -266,12 +280,12 @@ const InboxScreen: React.FC = () => {
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingTop: 40}}>
       <Image source={MOODS.heart} style={{width: 110, height: 110, marginBottom: 20}} resizeMode="contain" />
       <Text style={{color: '#EDEEF0', fontSize: 22, fontWeight: '700', marginBottom: 8}}>
-        All clear
+        {t('inbox.emptyTitle')}
       </Text>
       <Text style={{color: '#9AA0A6', fontSize: 15, textAlign: 'center', lineHeight: 22}}>
         {stats.totalCaptured > 0
-          ? `You processed ${stats.totalProcessed} item${stats.totalProcessed !== 1 ? 's' : ''} today.`
-          : 'Auto-categorized items will appear here.\nHead to Brain Dump to capture.'}
+          ? t('inbox.emptySubtitleProcessed', {count: stats.totalProcessed})
+          : t('inbox.emptySubtitleNothingCaptured')}
       </Text>
     </View>
   );
@@ -292,7 +306,7 @@ const InboxScreen: React.FC = () => {
         ListHeaderComponent={() => (
           <View style={{paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16}}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-              <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>Inbox</Text>
+              <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>{t('inbox.screenTitle')}</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Settings')}
                 hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
@@ -301,13 +315,13 @@ const InboxScreen: React.FC = () => {
             </View>
             {items.length > 0 ? (
               <Text style={{color: '#9AA0A6', fontSize: 13, marginTop: 4}}>
-                {items.length} item{items.length !== 1 ? 's' : ''} · confirm or change the suggestion
+                {t('inbox.subtitleWithItems', {count: items.length})}
               </Text>
             ) : (
               <Text style={{color: '#4B5563', fontSize: 13, marginTop: 4}}>
                 {stats.totalCaptured > 0
-                  ? `${stats.totalProcessed} processed today`
-                  : 'Suggestions appear automatically when you capture'}
+                  ? t('inbox.subtitleProcessedToday', {count: stats.totalProcessed})
+                  : t('inbox.subtitleNothingCaptured')}
               </Text>
             )}
           </View>

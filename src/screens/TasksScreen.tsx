@@ -32,12 +32,7 @@ import {Task, RecurrenceType, formatTime} from '../models/types';
 import {Haptics} from '../utils/haptics';
 import {requestNotificationPermission} from '../utils/notifications';
 import {MOODS} from '../utils/moods';
-
-// Calm copy
-const EMPTY_STATE = "Nothing here yet. Add something when you're ready.";
-const SNOOZE_1H = "No worries. I'll remind you in a bit.";
-const SNOOZE_TOMORROW = "All good. Let's pick this up tomorrow.";
-const TASK_DONE = 'Nice. One thing off your mind.';
+import {useTranslation} from 'react-i18next';
 
 // Arc colors for tasks — soft, distinguishable palette
 const ARC_COLORS = [
@@ -365,6 +360,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onUncomplete,
   color,
 }) => {
+  const {t} = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -472,7 +468,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 alignItems: 'center',
               }}>
               <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
-                Later
+                {t('tasks.actionLater')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -488,7 +484,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 alignItems: 'center',
               }}>
               <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
-                Tomorrow
+                {t('tasks.actionTomorrow')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -504,7 +500,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 alignItems: 'center',
               }}>
               <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>
-                Edit
+                {t('tasks.actionEdit')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -520,7 +516,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 alignItems: 'center',
               }}>
               <Text style={{color: '#EF4444', fontSize: 13, fontWeight: '500'}}>
-                Remove
+                {t('tasks.actionRemove')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -531,6 +527,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
 };
 
 const TasksScreen: React.FC = () => {
+  const {t} = useTranslation();
   const [newTaskText, setNewTaskText] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
@@ -630,14 +627,14 @@ const TasksScreen: React.FC = () => {
 
   const handleComplete = (id: string) => {
     completeTask(id);
-    showToast(TASK_DONE, 'cheerful');
+    showToast(t('tasks.toastDone'), 'cheerful');
   };
 
   const handleSnooze1h = (id: string) => {
     const snoozeTo = new Date(Date.now() + 60 * 60 * 1000);
     snoozeTask(id, snoozeTo.toISOString());
     Haptics.light();
-    showToast(SNOOZE_1H, 'upset');
+    showToast(t('tasks.toastSnooze1h'), 'upset');
   };
 
   const handleSnoozeTomorrow = (id: string) => {
@@ -646,14 +643,14 @@ const TasksScreen: React.FC = () => {
     tomorrow.setHours(9, 0, 0, 0);
     snoozeTask(id, tomorrow.toISOString());
     Haptics.light();
-    showToast(SNOOZE_TOMORROW, 'upset');
+    showToast(t('tasks.toastSnoozeTomorrow'), 'upset');
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Remove task?', "It'll be gone for good.", [
-      {text: 'Keep it', style: 'cancel'},
+    Alert.alert(t('tasks.deleteAlertTitle'), t('tasks.deleteAlertMessage'), [
+      {text: t('tasks.deleteAlertKeep'), style: 'cancel'},
       {
-        text: 'Remove',
+        text: t('tasks.deleteAlertConfirm'),
         style: 'destructive',
         onPress: () => {
           removeTask(id);
@@ -722,18 +719,18 @@ const TasksScreen: React.FC = () => {
           <View style={{flex: 1, padding: 24}}>
             {/* Header */}
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
-              <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>Edit Task</Text>
+              <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>{t('tasks.editModalTitle')}</Text>
               <TouchableOpacity onPress={() => setEditingTask(null)}>
-                <Text style={{color: '#9AA0A6', fontSize: 16}}>Cancel</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 16}}>{t('tasks.editModalCancel')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Text */}
-            <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', marginBottom: 8, letterSpacing: 0.5}}>TASK</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', marginBottom: 8, letterSpacing: 0.5}}>{t('tasks.editTaskSectionLabel')}</Text>
             <TextInput
               value={editText}
               onChangeText={setEditText}
-              placeholder="What's the task?"
+              placeholder={t('tasks.editTaskPlaceholder')}
               placeholderTextColor="#4B5563"
               multiline
               style={{
@@ -749,7 +746,7 @@ const TasksScreen: React.FC = () => {
 
             {/* Schedule toggle */}
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
-              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', letterSpacing: 0.5}}>SCHEDULE</Text>
+              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', letterSpacing: 0.5}}>{t('tasks.editScheduleSectionLabel')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   if (showEditTimePicker) {
@@ -770,7 +767,7 @@ const TasksScreen: React.FC = () => {
                   borderColor: showEditTimePicker ? '#6E6AF2' : '#2A2D34',
                 }}>
                 <Text style={{color: showEditTimePicker ? '#6E6AF2' : '#9AA0A6', fontSize: 13}}>
-                  {showEditTimePicker ? 'Clear' : '+ Add time'}
+                  {showEditTimePicker ? t('tasks.editScheduleClear') : t('tasks.editScheduleAddTime')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -778,7 +775,7 @@ const TasksScreen: React.FC = () => {
             {showEditTimePicker && (
               <View style={{backgroundColor: '#141821', borderRadius: 12, padding: 14, marginBottom: 16}}>
                 <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12}}>
-                  <Text style={{color: '#9AA0A6', fontSize: 14}}>Start time</Text>
+                  <Text style={{color: '#9AA0A6', fontSize: 14}}>{t('tasks.editStartTimeLabel')}</Text>
                   <DateTimePicker
                     value={editTime ?? new Date()}
                     mode="time"
@@ -788,13 +785,13 @@ const TasksScreen: React.FC = () => {
                   />
                 </View>
                 {/* Duration slider */}
-                <Text style={{color: '#6B7280', fontSize: 12, marginBottom: 4}}>Duration (optional)</Text>
+                <Text style={{color: '#6B7280', fontSize: 12, marginBottom: 4}}>{t('tasks.editDurationLabel')}</Text>
                 <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2}}>
                   <Text style={{color: '#6B7280', fontSize: 11}}>none — 12h</Text>
                   <Text style={{color: editDuration ? '#EDEEF0' : '#4B5563', fontSize: 14, fontWeight: '600'}}>
                     {editDuration
                       ? editDuration < 60 ? `${editDuration}m` : `${editDuration / 60}h`
-                      : 'none'}
+                      : t('tasks.editDurationNone')}
                   </Text>
                 </View>
                 <Slider
@@ -817,7 +814,7 @@ const TasksScreen: React.FC = () => {
                     if (!editWantsReminder) {
                       const granted = await requestNotificationPermission();
                       if (!granted) {
-                        Alert.alert('Reminders are off', 'Enable them in Settings.', [{text: 'Got it'}]);
+                        Alert.alert(t('tasks.remindersOffAlertTitle'), t('tasks.remindersOffAlertMessage'), [{text: t('tasks.remindersOffAlertButton')}]);
                         return;
                       }
                     }
@@ -841,14 +838,14 @@ const TasksScreen: React.FC = () => {
                   }}>
                     {editWantsReminder && <Text style={{color: '#FFF', fontSize: 12, fontWeight: '700'}}>✓</Text>}
                   </View>
-                  <Text style={{color: editWantsReminder ? '#EDEEF0' : '#9AA0A6', fontSize: 14}}>Notify me at this time</Text>
+                  <Text style={{color: editWantsReminder ? '#EDEEF0' : '#9AA0A6', fontSize: 14}}>{t('tasks.editNotifyToggle')}</Text>
                 </TouchableOpacity>
                 {/* Recurrence picker */}
                 <View style={{marginTop: 16}}>
-                  <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>REPEAT</Text>
+                  <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>{t('tasks.editRepeatLabel')}</Text>
                   <View style={{flexDirection: 'row', gap: 6}}>
                     {([null, 'daily', 'weekdays', 'weekends'] as (RecurrenceType | null)[]).map(opt => {
-                      const label = opt === null ? 'None' : opt === 'daily' ? 'Daily' : opt === 'weekdays' ? 'Weekdays' : 'Weekends';
+                      const label = opt === null ? t('tasks.repeatNone') : opt === 'daily' ? t('tasks.repeatDaily') : opt === 'weekdays' ? t('tasks.repeatWeekdays') : t('tasks.repeatWeekends');
                       const active = editRecurrence === opt;
                       return (
                         <TouchableOpacity
@@ -884,7 +881,7 @@ const TasksScreen: React.FC = () => {
                 paddingVertical: 16,
                 alignItems: 'center',
               }}>
-              <Text style={{color: editText.trim() ? '#FFF' : '#4B5563', fontSize: 16, fontWeight: '600'}}>Save</Text>
+              <Text style={{color: editText.trim() ? '#FFF' : '#4B5563', fontSize: 16, fontWeight: '600'}}>{t('tasks.editSaveButton')}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -907,14 +904,14 @@ const TasksScreen: React.FC = () => {
                 fontSize: 28,
                 fontWeight: '700',
               }}>
-              Tasks
+              {t('tasks.screenTitle')}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
             </TouchableOpacity>
           </View>
           <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-            Actionable items only.
+            {t('tasks.screenSubtitle')}
           </Text>
         </View>
 
@@ -941,10 +938,10 @@ const TasksScreen: React.FC = () => {
               }}>
               <Text style={{fontSize: 32, marginBottom: 8}}>🕐</Text>
               <Text style={{color: '#EDEEF0', fontSize: 16, fontWeight: '600', marginBottom: 4}}>
-                Clock View
+                {t('tasks.clockViewUpsellTitle')}
               </Text>
               <Text style={{color: '#9AA0A6', fontSize: 13, textAlign: 'center'}}>
-                See your scheduled tasks on a visual clock. Upgrade to Pro.
+                {t('tasks.clockViewUpsellText')}
               </Text>
             </TouchableOpacity>
           )}
@@ -962,7 +959,7 @@ const TasksScreen: React.FC = () => {
                   marginBottom: 8,
                   paddingHorizontal: 4,
                 }}>
-                Today
+                {t('tasks.sectionToday')}
               </Text>
               {untimedTasks.map(task => (
                 <TaskItem
@@ -991,7 +988,7 @@ const TasksScreen: React.FC = () => {
                   marginBottom: 8,
                   paddingHorizontal: 4,
                 }}>
-                Scheduled
+                {t('tasks.sectionScheduled')}
               </Text>
               {timedTasks.map(task => (
                 <TaskItem
@@ -1021,7 +1018,7 @@ const TasksScreen: React.FC = () => {
                   marginBottom: 8,
                   paddingHorizontal: 4,
                 }}>
-                Later
+                {t('tasks.sectionLater')}
               </Text>
               {laterTasks.map(task => (
                 <TaskItem
@@ -1050,7 +1047,7 @@ const TasksScreen: React.FC = () => {
                   marginBottom: 8,
                   paddingHorizontal: 4,
                 }}>
-                Done today
+                {t('tasks.sectionDoneToday')}
               </Text>
               {completedTasks.map(task => (
                 <TaskItem
@@ -1090,7 +1087,7 @@ const TasksScreen: React.FC = () => {
                   textAlign: 'center',
                   lineHeight: 24,
                 }}>
-                {EMPTY_STATE}
+                {t('tasks.emptyState')}
               </Text>
             </View>
           )}
@@ -1116,7 +1113,7 @@ const TasksScreen: React.FC = () => {
                 justifyContent: 'space-between',
                 marginBottom: 8,
               }}>
-                <Text style={{color: '#9AA0A6', fontSize: 14}}>Schedule at:</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 14}}>{t('tasks.scheduleAtLabel')}</Text>
                 <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
                   <DateTimePicker
                     value={selectedTime ?? new Date()}
@@ -1140,11 +1137,11 @@ const TasksScreen: React.FC = () => {
               {selectedTime && (
                 <View style={{marginBottom: 4}}>
                   <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2}}>
-                    <Text style={{color: '#6B7280', fontSize: 12}}>Duration</Text>
+                    <Text style={{color: '#6B7280', fontSize: 12}}>{t('tasks.durationLabel')}</Text>
                     <Text style={{color: selectedDuration ? '#EDEEF0' : '#4B5563', fontSize: 13, fontWeight: '600'}}>
                       {selectedDuration
                         ? selectedDuration < 60 ? `${selectedDuration}m` : `${selectedDuration / 60}h`
-                        : 'none'}
+                        : t('tasks.durationNone')}
                     </Text>
                   </View>
                   <Slider
@@ -1162,8 +1159,8 @@ const TasksScreen: React.FC = () => {
                     thumbTintColor="#6E6AF2"
                   />
                   <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                    <Text style={{color: '#4B5563', fontSize: 10}}>none</Text>
-                    <Text style={{color: '#4B5563', fontSize: 10}}>12h</Text>
+                    <Text style={{color: '#4B5563', fontSize: 10}}>{t('tasks.durationNone')}</Text>
+                    <Text style={{color: '#4B5563', fontSize: 10}}>{t('tasks.durationMax')}</Text>
                   </View>
                   {/* Reminder toggle */}
                   <TouchableOpacity
@@ -1171,7 +1168,7 @@ const TasksScreen: React.FC = () => {
                       if (!wantsReminder) {
                         const granted = await requestNotificationPermission();
                         if (!granted) {
-                          Alert.alert('Reminders are off', 'Enable them in Settings.', [{text: 'Got it'}]);
+                          Alert.alert(t('tasks.remindersOffAlertTitle'), t('tasks.remindersOffAlertMessage'), [{text: t('tasks.remindersOffAlertButton')}]);
                           return;
                         }
                       }
@@ -1195,14 +1192,14 @@ const TasksScreen: React.FC = () => {
                       color: wantsReminder ? '#6E6AF2' : '#9AA0A6',
                       fontSize: 13,
                       fontWeight: wantsReminder ? '600' : '400',
-                    }}>Remind</Text>
+                    }}>{t('tasks.remindButton')}</Text>
                   </TouchableOpacity>
                   {/* Recurrence picker */}
                   <View style={{marginTop: 10}}>
-                    <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>REPEAT</Text>
+                    <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>{t('tasks.repeatLabel')}</Text>
                     <View style={{flexDirection: 'row', gap: 6}}>
                       {([null, 'daily', 'weekdays', 'weekends'] as (RecurrenceType | null)[]).map(opt => {
-                        const label = opt === null ? 'None' : opt === 'daily' ? 'Daily' : opt === 'weekdays' ? 'Weekdays' : 'Weekends';
+                        const label = opt === null ? t('tasks.repeatNone') : opt === 'daily' ? t('tasks.repeatDaily') : opt === 'weekdays' ? t('tasks.repeatWeekdays') : t('tasks.repeatWeekends');
                         const active = selectedRecurrence === opt;
                         return (
                           <TouchableOpacity
@@ -1285,7 +1282,7 @@ const TasksScreen: React.FC = () => {
                 ref={inputRef}
                 value={newTaskText}
                 onChangeText={setNewTaskText}
-                placeholder="Add a task..."
+                placeholder={t('tasks.addPlaceholder')}
                 placeholderTextColor="#6B7280"
                 returnKeyType="done"
                 onSubmitEditing={handleAddTask}

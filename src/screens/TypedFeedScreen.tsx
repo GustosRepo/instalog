@@ -16,6 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 import {useLogStore} from '../stores/useLogStore';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {LogItemType, formatTime} from '../models/types';
@@ -31,7 +32,7 @@ const TYPE_META: Record<string, {emoji: string; color: string}> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const formatDate = (isoString: string): string => {
+const formatDate = (isoString: string, yesterdayLabel: string = 'Yesterday'): string => {
   const date = new Date(isoString);
   const today = new Date();
   const yesterday = new Date(today);
@@ -43,7 +44,7 @@ const formatDate = (isoString: string): string => {
     a.getDate() === b.getDate();
 
   if (sameDay(date, today)) return formatTime(isoString);
-  if (sameDay(date, yesterday)) return `Yesterday · ${formatTime(isoString)}`;
+  if (sameDay(date, yesterday)) return `${yesterdayLabel} · ${formatTime(isoString)}`;
 
   const options: Intl.DateTimeFormatOptions = {month: 'short', day: 'numeric'};
   return `${date.toLocaleDateString(undefined, options)} · ${formatTime(isoString)}`;
@@ -69,6 +70,20 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
 
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
+  const {t} = useTranslation();
+
+  const emptySubtitles: Record<string, string> = {
+    thought: t('typedFeed.emptySubtitleThought'),
+    idea: t('typedFeed.emptySubtitleIdea'),
+    note: t('typedFeed.emptySubtitleNote'),
+  };
+  const composePlaceholders: Record<string, string> = {
+    thought: t('typedFeed.composePlaceholderThought'),
+    idea: t('typedFeed.composePlaceholderIdea'),
+    note: t('typedFeed.composePlaceholderNote'),
+  };
+  const emptySubtitleText = emptySubtitles[primaryType] ?? t('typedFeed.emptySubtitleThought');
+  const composePlaceholderText = composePlaceholders[primaryType] ?? t('typedFeed.composePlaceholderThought');
 
   // Show processed logs of the requested types, newest first
   const filtered = logs
@@ -135,7 +150,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
                   {item.text ?? '—'}
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 11}}>
-                  {formatDate(item.timestamp)}
+                  {formatDate(item.timestamp, t('typedFeed.dateYesterday'))}
                 </Text>
               </View>
             </View>
@@ -145,7 +160,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
           <View style={{alignItems: 'center', gap: 10}}>
             <Text style={{fontSize: 40}}>{primaryMeta.emoji}</Text>
             <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-              Nothing here yet
+              {t('typedFeed.emptyTitle')}
             </Text>
             <Text style={{
               color: '#9AA0A6',
@@ -153,7 +168,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
               textAlign: 'center',
               lineHeight: 20,
             }}>
-              Write your first {title.toLowerCase().replace(/s$/, '')} below
+              {emptySubtitleText}
             </Text>
           </View>
         }
@@ -176,7 +191,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
             ref={inputRef}
             value={text}
             onChangeText={setText}
-            placeholder={`Add ${title.toLowerCase().replace(/s$/, '')}...`}
+            placeholder={composePlaceholderText}
             placeholderTextColor="#6B7280"
             onSubmitEditing={handleSubmit}
             returnKeyType="send"
@@ -221,7 +236,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
             backgroundColor: '#0B0D10',
             gap: 6,
           }}>
-          <Text style={{color: '#6E6AF2', fontSize: 14, fontWeight: '600'}}>⭐ Upgrade to write directly here</Text>
+          <Text style={{color: '#6E6AF2', fontSize: 14, fontWeight: '600'}}>{t('typedFeed.upgradePrompt')}</Text>
         </TouchableOpacity>
       )}
     </KeyboardAvoidingView>

@@ -17,6 +17,7 @@ import {
   Linking,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 import {useLogStore} from '../stores/useLogStore';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {useHintsStore} from '../stores/useHintsStore';
@@ -24,8 +25,11 @@ import {useOnboardingStore} from '../stores/useOnboardingStore';
 import {storage} from '../storage/mmkv';
 import {Haptics} from '../utils/haptics';
 import {MOODS} from '../utils/moods';
+import {useLanguageStore, SUPPORTED_LANGUAGES} from '../stores/useLanguageStore';
 
 const SettingsScreen: React.FC = () => {
+  const {t} = useTranslation();
+  const {language, setLanguage} = useLanguageStore();
   const navigation = useNavigation<any>();
   const logs = useLogStore(state => state.logs);
   const refreshLogs = useLogStore(state => state.refreshLogs);
@@ -55,24 +59,24 @@ const SettingsScreen: React.FC = () => {
         Haptics.success();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to export logs');
+      Alert.alert(t('settings.exportErrorTitle'), t('settings.exportErrorMessage'));
     }
   };
 
   const handleClearAllData = () => {
     Alert.alert(
-      'Clear All Data',
-      'This will permanently delete all your logs. This cannot be undone.',
+      t('settings.clearAlertTitle'),
+      t('settings.clearAlertMessage'),
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: t('settings.clearAlertCancel'), style: 'cancel'},
         {
-          text: 'Clear',
+          text: t('settings.clearAlertConfirm'),
           style: 'destructive',
           onPress: () => {
             storage.clearAll();
             refreshLogs();
             Haptics.warning();
-            Alert.alert('Done', 'All data has been cleared');
+            Alert.alert(t('settings.clearDoneAlertTitle'), t('settings.clearDoneAlertMessage'));
             setShowSadMood(true);
             setTimeout(() => setShowSadMood(false), 2500);
           },
@@ -91,7 +95,7 @@ const SettingsScreen: React.FC = () => {
         {/* Header */}
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 16}}>
         <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>
-          Settings
+          {t('settings.screenTitle')}
         </Text>
       </View>
 
@@ -113,10 +117,10 @@ const SettingsScreen: React.FC = () => {
           }}>
           <View style={{flex: 1}}>
             <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 4}}>
-              📲  Widget Config
+              {t('settings.widgetConfigTitle')}
             </Text>
             <Text style={{color: '#9AA0A6', fontSize: 14}}>
-              Quick-log buttons for your home screen
+              {t('settings.widgetConfigSubtitle')}
             </Text>
           </View>
           <Text style={{color: '#9AA0A6', fontSize: 18}}>›</Text>
@@ -126,11 +130,11 @@ const SettingsScreen: React.FC = () => {
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16}}>
             <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600'}}>
-              Subscription
+              {t('settings.subscriptionTitle')}
             </Text>
             {isPro && (
               <View style={{backgroundColor: '#6E6AF2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6}}>
-                <Text style={{color: '#FFFFFF', fontSize: 12, fontWeight: '700'}}>PRO</Text>
+                <Text style={{color: '#FFFFFF', fontSize: 12, fontWeight: '700'}}>{t('settings.proBadge')}</Text>
               </View>
             )}
           </View>
@@ -138,14 +142,14 @@ const SettingsScreen: React.FC = () => {
           {isPro ? (
             <>
               <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 16}}>
-                You have unlimited logs and sync across all your devices.
+                {t('settings.proDescription')}
               </Text>
               <TouchableOpacity
                 onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
                 style={{paddingVertical: 12}}
               >
                 <Text style={{color: '#6E6AF2', fontSize: 15, fontWeight: '500'}}>
-                  Manage Subscription
+                  {t('settings.manageSubscriptionLink')}
                 </Text>
               </TouchableOpacity>
               
@@ -159,7 +163,7 @@ const SettingsScreen: React.FC = () => {
                   style={{alignItems: 'center', paddingVertical: 8, marginTop: 12, backgroundColor: '#FFA50033', paddingHorizontal: 16, borderRadius: 8}}
                 >
                   <Text style={{color: '#FFA500', fontSize: 13, fontWeight: '600'}}>
-                    [DEV] Toggle Pro: {isPro ? 'ON' : 'OFF'}
+                    {t('settings.devTogglePro')}: {isPro ? 'ON' : 'OFF'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -167,10 +171,10 @@ const SettingsScreen: React.FC = () => {
           ) : (
             <>
               <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 8}}>
-                Upgrade to Pro for clock view, reminders, insights, and export.
+                {t('settings.upgradeDescription')}
               </Text>
               <Text style={{color: '#6B7280', fontSize: 13, marginBottom: 16}}>
-                Logging and basic tasks are always free.
+                {t('settings.freeTierNote')}
               </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Paywall')}
@@ -183,7 +187,7 @@ const SettingsScreen: React.FC = () => {
                 }}
               >
                 <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>
-                  Upgrade to Pro
+                  {t('settings.upgradeButton')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -191,13 +195,13 @@ const SettingsScreen: React.FC = () => {
                   Haptics.light();
                   const restored = await restorePurchases();
                   if (!restored) {
-                    Alert.alert('No Subscription Found', 'We couldn\'t find an active subscription for your Apple ID.');
+                    Alert.alert(t('settings.restoreNoSubTitle'), t('settings.restoreNoSubMessage'));
                   }
                 }}
                 style={{alignItems: 'center', paddingVertical: 8}}
               >
                 <Text style={{color: '#9AA0A6', fontSize: 14}}>
-                  Restore Purchases
+                  {t('settings.restoreButton')}
                 </Text>
               </TouchableOpacity>
               
@@ -234,10 +238,37 @@ const SettingsScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Language Section */}
+        <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+          <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
+            {t('settings.languageTitle')}
+          </Text>
+          <View style={{flexDirection: 'row', gap: 8}}>
+            {SUPPORTED_LANGUAGES.map(lang => (
+              <TouchableOpacity
+                key={lang.code}
+                onPress={() => setLanguage(lang.code)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  borderWidth: 1.5,
+                  borderColor: language === lang.code ? '#6E6AF2' : '#1F2330',
+                  backgroundColor: language === lang.code ? '#6E6AF222' : 'transparent',
+                  alignItems: 'center',
+                }}>
+                <Text style={{color: language === lang.code ? '#6E6AF2' : '#EDEEF0', fontSize: 14, fontWeight: '500'}}>
+                  {lang.nativeLabel}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* How It Works Section */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
           <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-            How It Works
+            {t('settings.howItWorksTitle')}
           </Text>
           
           <View style={{marginBottom: 16}}>
@@ -245,10 +276,10 @@ const SettingsScreen: React.FC = () => {
               <Text style={{fontSize: 16, marginRight: 12}}>⚡</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Tap to capture
+                  {t('settings.step1Title')}
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  Hit the big button and your log is saved instantly. No decisions needed.
+                  {t('settings.step1Description')}
                 </Text>
               </View>
             </View>
@@ -257,10 +288,10 @@ const SettingsScreen: React.FC = () => {
               <Text style={{fontSize: 16, marginRight: 12}}>📥</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Review in Wrap Up
+                  {t('settings.step2Title')}
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  At the end of the day, see everything you captured and process it at your own pace.
+                  {t('settings.step2Description')}
                 </Text>
               </View>
             </View>
@@ -269,10 +300,10 @@ const SettingsScreen: React.FC = () => {
               <Text style={{fontSize: 16, marginRight: 12}}>🔁</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Reflect in Review
+                  {t('settings.step3Title')}
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  Look back at patterns, notes, and momentum over time.
+                  {t('settings.step3Description')}
                 </Text>
               </View>
             </View>
@@ -301,10 +332,10 @@ const SettingsScreen: React.FC = () => {
               }}>
               <View style={{flex: 1}}>
                 <Text style={{color: '#FFFFFF', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  ✨ Customize your widgets
+                  {t('settings.widgetHintTitle')}
                 </Text>
                 <Text style={{color: '#FFFFFF', opacity: 0.9, fontSize: 13}}>
-                  Add quick-log buttons to your home screen
+                  {t('settings.widgetHintSubtitle')}
                 </Text>
               </View>
               <Text style={{color: '#FFFFFF', fontSize: 20}}>→</Text>
@@ -320,20 +351,20 @@ const SettingsScreen: React.FC = () => {
           </View>
           
           <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-            About
+            {t('settings.aboutTitle')}
           </Text>
           <View style={{marginBottom: 12}}>
-            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>App</Text>
-            <Text style={{color: '#EDEEF0', fontSize: 16}}>Instalog</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>{t('settings.aboutAppLabel')}</Text>
+            <Text style={{color: '#EDEEF0', fontSize: 16}}>{t('settings.aboutAppValue')}</Text>
           </View>
           <View style={{marginBottom: 12}}>
-            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>Version</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>{t('settings.aboutVersionLabel')}</Text>
             <Text style={{color: '#EDEEF0', fontSize: 16}}>1.0.0</Text>
           </View>
           <View>
-            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>Philosophy</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>{t('settings.aboutPhilosophyLabel')}</Text>
             <Text style={{color: '#EDEEF0', fontSize: 16, lineHeight: 24}}>
-              Momentum preservation - instantly log accomplishments without stopping your day.
+              {t('settings.aboutPhilosophyValue')}
             </Text>
           </View>
         </View>
@@ -341,10 +372,10 @@ const SettingsScreen: React.FC = () => {
         {/* Data Section */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
           <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-            Data
+            {t('settings.dataTitle')}
           </Text>
           <View style={{marginBottom: 12}}>
-            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>Total Logs</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>{t('settings.totalLogsLabel')}</Text>
             <Text style={{color: '#EDEEF0', fontSize: 16}}>{logs.length}</Text>
           </View>
         </View>
@@ -352,7 +383,7 @@ const SettingsScreen: React.FC = () => {
         {/* Actions Section */}
         <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 32}}>
           <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-            Actions
+            {t('settings.actionsTitle')}
           </Text>
 
           {/* Export Button — Pro only */}
@@ -372,7 +403,7 @@ const SettingsScreen: React.FC = () => {
             accessibilityHint="Shares all your logs and buckets as a JSON file">
             <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8}}>
               <Text style={{color: '#EDEEF0', textAlign: 'center', fontSize: 16, fontWeight: '600'}}>
-                Export All Data
+                {t('settings.exportButton')}
               </Text>
               {!isPro && <Text style={{fontSize: 12}}>⭐</Text>}
             </View>
@@ -388,7 +419,7 @@ const SettingsScreen: React.FC = () => {
             accessibilityLabel="Clear all data"
             accessibilityHint="Permanently deletes all logs and buckets. This action cannot be undone.">
             <Text style={{color: '#EF4444', textAlign: 'center', fontSize: 16, fontWeight: '600'}}>
-              Clear All Data
+              {t('settings.clearButton')}
             </Text>
           </TouchableOpacity>
 
@@ -407,8 +438,7 @@ const SettingsScreen: React.FC = () => {
         {/* Footer */}
         <View style={{paddingVertical: 32, alignItems: 'center'}}>
           <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 16}}>
-            Made with focus{'\n'}
-            Zero analytics • No cloud • Your data stays yours
+            {t('settings.footerText')}
           </Text>
           
           {/* Legal Links - Required for App Store */}
@@ -417,13 +447,13 @@ const SettingsScreen: React.FC = () => {
               onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
               accessible={true}
               accessibilityRole="link">
-              <Text style={{color: '#6E6AF2', fontSize: 14}}>Privacy Policy</Text>
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>{t('settings.privacyPolicyLink')}</Text>
             </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
               accessible={true}
               accessibilityRole="link">
-              <Text style={{color: '#6E6AF2', fontSize: 14}}>Terms of Service</Text>
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>{t('settings.termsOfServiceLink')}</Text>
             </TouchableOpacity>
           </View>
           
@@ -432,7 +462,7 @@ const SettingsScreen: React.FC = () => {
               onPress={() => Linking.openURL('mailto:admin@code-wrx.com')}
               accessible={true}
               accessibilityRole="link">
-              <Text style={{color: '#6E6AF2', fontSize: 14}}>Contact Support</Text>
+              <Text style={{color: '#6E6AF2', fontSize: 14}}>{t('settings.contactSupportLink')}</Text>
             </TouchableOpacity>
           </View>
         </View>

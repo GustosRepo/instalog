@@ -28,11 +28,13 @@ import {BrainMood} from '../models/types';
 import {MOOD_META, MOOD_ORDER} from '../utils/mood';
 import {Haptics} from '../utils/haptics';
 import {MOODS} from '../utils/moods';
+import {useTranslation} from 'react-i18next';
 import {maybeRequestReview} from '../utils/storeReview';
 
 // ─── Mood picker ──────────────────────────────────────────────────────────────
 
 const MoodPicker: React.FC = () => {
+  const {t} = useTranslation();
   const setTodayMood = useMoodStore(state => state.setTodayMood);
   const getTodayMood = useMoodStore(state => state.getTodayMood);
   const clearTodayMood = useMoodStore(state => state.clearTodayMood);
@@ -65,7 +67,7 @@ const MoodPicker: React.FC = () => {
             <Image source={MOOD_META[todayMood].mascot} style={{width: 32, height: 32}} resizeMode="contain" />
             <View>
               <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6}}>
-                BRAIN TODAY
+                {t('instalog.moodSectionLabel')}
               </Text>
               <Text style={{color: MOOD_META[todayMood].color, fontSize: 14, fontWeight: '600', marginTop: 1}}>
                 {MOOD_META[todayMood].label}
@@ -94,7 +96,7 @@ const MoodPicker: React.FC = () => {
         // Unset state — prompt
         <>
           <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginBottom: 10}}>
-            HOW IS YOUR BRAIN TODAY?
+            {t('instalog.moodPromptLabel')}
           </Text>
           <View style={{flexDirection: 'row', gap: 8}}>
             {MOOD_ORDER.map(m => (
@@ -137,6 +139,7 @@ const InstalogScreen: React.FC = () => {
   const getTodayCaptureStats = useLogStore(state => state.getTodayCaptureStats);
   const {isPro, incrementLogCount, totalLogCount} = useSubscriptionStore();
   const {loadHints} = useHintsStore();
+  const {t} = useTranslation();
 
   useEffect(() => {
     loadHints();
@@ -220,10 +223,10 @@ const InstalogScreen: React.FC = () => {
     <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80}}>
       <Image source={MOODS.chill} style={{width: 90, height: 90, marginBottom: 20}} resizeMode="contain" />
       <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 6}}>
-        Start dumping
+        {t('instalog.emptyTitle')}
       </Text>
       <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', lineHeight: 20}}>
-        Type anything — thoughts, tasks, ideas.{'\n'}No organizing yet.
+        {t('instalog.emptySubtitle')}
       </Text>
     </View>
   );
@@ -245,16 +248,16 @@ const InstalogScreen: React.FC = () => {
           paddingBottom: 12,
         }}>
           <View>
-            <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>Brain Dump</Text>
+            <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>{t('instalog.screenTitle')}</Text>
             {stats.totalCaptured > 0 ? (
               <Text style={{color: '#9AA0A6', fontSize: 13, marginTop: 2}}>
                 {stats.totalUnprocessed > 0
-                  ? `${stats.totalUnprocessed} unprocessed · ${stats.totalProcessed} done`
-                  : 'All processed ✓'}
+                  ? t('instalog.subtitleUnprocessed', {unprocessed: stats.totalUnprocessed, processed: stats.totalProcessed})
+                  : t('instalog.subtitleAllProcessed')}
               </Text>
             ) : (
               <Text style={{color: '#4B5563', fontSize: 13, marginTop: 2}}>
-                Dump first, organize later
+                {t('instalog.subtitleEmpty')}
               </Text>
             )}
           </View>
@@ -262,7 +265,7 @@ const InstalogScreen: React.FC = () => {
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 14}}>
             {!isPro && (
               <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
-                <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>Go Pro</Text>
+                <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>{t('instalog.goProButton')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -317,7 +320,7 @@ const InstalogScreen: React.FC = () => {
               ref={inputRef}
               value={text}
               onChangeText={setText}
-              placeholder="What's on your mind…"
+              placeholder={t('instalog.inputPlaceholder')}
               placeholderTextColor="#4B5563"
               style={{
                 flex: 1,

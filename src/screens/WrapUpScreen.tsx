@@ -22,6 +22,7 @@ import {useMoodStore} from '../stores/useMoodStore';
 import {MOODS} from '../utils/moods';
 import {MOOD_META} from '../utils/mood';
 import {maybeRequestReview} from '../utils/storeReview';
+import {useTranslation} from 'react-i18next';
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ const StatCard: React.FC<{
 // ─── WrapUpScreen ─────────────────────────────────────────────────────────────
 
 const WrapUpScreen: React.FC = () => {
+  const {t} = useTranslation();
   const navigation = useNavigation<any>();
   const getTodayCaptureStats = useLogStore(state => state.getTodayCaptureStats);
   const getUnprocessedItems = useLogStore(state => state.getUnprocessedItems);
@@ -86,17 +88,17 @@ const WrapUpScreen: React.FC = () => {
 
   const getCopy = () => {
     if (nothingYet) {
-      return {title: 'Nothing yet', sub: 'Start capturing in Brain Dump\nand come back to close out the day.'};
+      return {title: t('wrapUp.emptyTitle'), sub: t('wrapUp.emptySubtitle')};
     }
     if (allClear) {
       return {
-        title: 'All clear',
-        sub: `You captured ${stats.totalCaptured} thing${stats.totalCaptured !== 1 ? 's' : ''} today.\nEvery one processed. Nice.`,
+        title: t('wrapUp.allClearTitle'),
+        sub: t('wrapUp.allClearSubtitle', {count: stats.totalCaptured}),
       };
     }
     return {
-      title: `${stats.totalUnprocessed} left`,
-      sub: `You captured ${stats.totalCaptured} item${stats.totalCaptured !== 1 ? 's' : ''} today.\n${stats.totalProcessed} processed, ${stats.totalUnprocessed} still waiting.`,
+      title: t('wrapUp.remainingTitle', {count: stats.totalUnprocessed}),
+      sub: t('wrapUp.remainingSubtitle', {count: stats.totalCaptured, total: stats.totalCaptured, processed: stats.totalProcessed, unprocessed: stats.totalUnprocessed}),
     };
   };
 
@@ -114,7 +116,7 @@ const WrapUpScreen: React.FC = () => {
 
         {/* Header */}
         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingBottom: 24}}>
-          <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>Wrap Up</Text>
+          <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>{t('wrapUp.screenTitle')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
             <Text style={{fontSize: 18, opacity: 0.6}}>⚙️</Text>
           </TouchableOpacity>
@@ -145,7 +147,7 @@ const WrapUpScreen: React.FC = () => {
               borderWidth: 1,
               borderColor: todayMood ? `${MOOD_META[todayMood].color}33` : '#1F2330',
             }}>
-              <Text style={{color: '#4B5563', fontSize: 13, flex: 1}}>Brain mood today</Text>
+              <Text style={{color: '#4B5563', fontSize: 13, flex: 1}}>{t('wrapUp.moodTodayLabel')}</Text>
               {todayMood ? (
                 <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
                   <Image source={MOOD_META[todayMood].mascot} style={{width: 28, height: 28}} resizeMode="contain" />
@@ -154,23 +156,23 @@ const WrapUpScreen: React.FC = () => {
                   </Text>
                 </View>
               ) : (
-                <Text style={{color: '#4B5563', fontSize: 13}}>Not set</Text>
+                <Text style={{color: '#4B5563', fontSize: 13}}>{t('wrapUp.moodNotSet')}</Text>
               )}
             </View>
 
             <View style={{marginBottom: 28}}>
               <View style={{flexDirection: 'row', gap: 10, marginBottom: 10}}>
-                <StatCard value={stats.totalCaptured} label="Captured" accent="#6E6AF2" />
-                <StatCard value={stats.totalProcessed} label="Processed" accent="#6EE0F2" />
+                <StatCard value={stats.totalCaptured} label={t('wrapUp.statCaptured')} accent="#6E6AF2" />
+                <StatCard value={stats.totalProcessed} label={t('wrapUp.statProcessed')} accent="#6EE0F2" />
               </View>
               <View style={{flexDirection: 'row', gap: 10}}>
                 <StatCard
                   value={stats.totalUnprocessed}
-                  label="Unprocessed"
+                  label={t('wrapUp.statUnprocessed')}
                   accent="#F29B6E"
                   dim={stats.totalUnprocessed === 0}
                 />
-                <StatCard value={completedTasks.length} label="Tasks done" accent="#6EF2A8" dim={completedTasks.length === 0} />
+                <StatCard value={completedTasks.length} label={t('wrapUp.statTasksDone')} accent="#6EF2A8" dim={completedTasks.length === 0} />
               </View>
             </View>
           </>
@@ -185,19 +187,19 @@ const WrapUpScreen: React.FC = () => {
             marginBottom: 28,
           }}>
             <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginBottom: 12}}>
-              PROCESSED AS
+              {t('wrapUp.processedAsLabel')}
             </Text>
             <View style={{flexDirection: 'row', gap: 8}}>
               <View style={{flex: 1, alignItems: 'center'}}>
                 <Text style={{fontSize: 22, marginBottom: 4}}>📋</Text>
                 <Text style={{color: '#6E6AF2', fontSize: 18, fontWeight: '700'}}>{stats.totalTasks}</Text>
-                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>Tasks</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>{t('wrapUp.categoryTasks')}</Text>
               </View>
               <View style={{width: 1, backgroundColor: '#1F2330'}} />
               <View style={{flex: 1, alignItems: 'center'}}>
                 <Text style={{fontSize: 22, marginBottom: 4}}>📝</Text>
                 <Text style={{color: '#6EE0F2', fontSize: 18, fontWeight: '700'}}>{stats.totalNotes}</Text>
-                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>Notes / Ideas</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>{t('wrapUp.categoryNotesIdeas')}</Text>
               </View>
             </View>
           </View>
@@ -216,7 +218,7 @@ const WrapUpScreen: React.FC = () => {
               }}
               activeOpacity={0.8}>
               <Text style={{color: '#FFF', fontSize: 16, fontWeight: '600'}}>
-                Process {unprocessed.length} remaining →
+                {t('wrapUp.ctaProcessRemaining', {count: unprocessed.length})}
               </Text>
             </TouchableOpacity>
           )}
@@ -232,7 +234,7 @@ const WrapUpScreen: React.FC = () => {
               }}
               activeOpacity={0.8}>
               <Text style={{color: '#FFF', fontSize: 16, fontWeight: '600'}}>
-                Start Brain Dump →
+                {t('wrapUp.ctaStartBrainDump')}
               </Text>
             </TouchableOpacity>
           )}
@@ -250,7 +252,7 @@ const WrapUpScreen: React.FC = () => {
               }}
               activeOpacity={0.8}>
               <Text style={{color: '#9AA0A6', fontSize: 16, fontWeight: '500'}}>
-                View Review →
+                {t('wrapUp.ctaViewReview')}
               </Text>
             </TouchableOpacity>
           )}
@@ -265,7 +267,7 @@ const WrapUpScreen: React.FC = () => {
               }}
               activeOpacity={0.7}>
               <Text style={{color: '#4B5563', fontSize: 14}}>
-                Leave the rest for tomorrow
+                {t('wrapUp.ctaLeaveForTomorrow')}
               </Text>
             </TouchableOpacity>
           )}

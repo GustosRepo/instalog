@@ -28,6 +28,7 @@ import {LogEntry, Task, formatTime} from '../models/types';
 import {storage} from '../storage/mmkv';
 import {MOODS} from '../utils/moods';
 import {MOOD_META, MOOD_ORDER, getMoodStats, getMoodHistory} from '../utils/mood';
+import {useTranslation} from 'react-i18next';
 
 // Helper: Group logs by YYYY-MM-DD
 const groupLogsByDay = (logs: LogEntry[]): Record<string, LogEntry[]> => {
@@ -96,6 +97,7 @@ interface DayDetailProps {
 }
 
 const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, logs, tasks}) => {
+  const {t} = useTranslation();
   const date = new Date(dateKey);
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dateDisplay = `${monthNames[date.getMonth()]} ${date.getDate()}`;
@@ -117,7 +119,7 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
           {/* Header */}
           <View style={{paddingHorizontal: 24, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(154, 160, 166, 0.1)'}}>
             <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>
-              {dateDisplay} — {totalItems} {totalItems === 1 ? 'item' : 'items'}
+              {dateDisplay} — {totalItems} {totalItems === 1 ? t('review.dayDetailItem') : t('review.dayDetailItems')}
             </Text>
           </View>
 
@@ -149,7 +151,7 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
                 </View>
                 {task.completedAt && (
                   <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 8}}>
-                    Completed {formatTime(task.completedAt)}
+                    {t('review.taskCompletedAt', {time: formatTime(task.completedAt)})}
                   </Text>
                 )}
               </View>
@@ -163,6 +165,7 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
 
 // Activity Heatmap Component
 const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByDay: Record<string, Task[]>}> = ({logsByDay, tasksByDay}) => {
+  const {t} = useTranslation();
   const [selectedDay, setSelectedDay] = useState<{dateKey: string; logs: LogEntry[]; tasks: Task[]} | null>(null);
 
   const now = new Date();
@@ -177,7 +180,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByD
   return (
     <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
       <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-        Activity
+        {t('review.activitySectionTitle')}
       </Text>
       <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 12}}>
         {monthNames[currentMonth]} {currentYear}
@@ -248,6 +251,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByD
 
 // Search Component
 const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
+  const {t} = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchResults = useMemo(() => {
@@ -263,13 +267,13 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
   return (
     <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20}}>
       <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-        Search
+        {t('review.searchSectionTitle')}
       </Text>
 
       <TextInput
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search your logs…"
+        placeholder={t('review.searchPlaceholder')}
         placeholderTextColor="#9AA0A6"
         style={{
           backgroundColor: '#0B0D10',
@@ -292,13 +296,13 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
                 resizeMode="contain"
               />
               <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center'}}>
-                No matching logs
+                {t('review.searchNoResults')}
               </Text>
             </View>
           ) : (
             <View>
               <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 12}}>
-                {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                {t('review.searchResultCount', {count: searchResults.length})}
               </Text>
               {searchResults.map(log => (
                 <View
@@ -326,6 +330,7 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
 
 // Mood Insights Component
 const MoodInsights: React.FC = () => {
+  const {t} = useTranslation();
   const entries = useMoodStore(state => state.entries);
   const stats7 = useMemo(() => getMoodStats(entries, 7), [entries]);
   const stats30 = useMemo(() => getMoodStats(entries, 30), [entries]);
@@ -340,10 +345,10 @@ const MoodInsights: React.FC = () => {
     return (
       <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
         <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 8}}>
-          Brain Mood
+          {t('review.brainMoodTitle')}
         </Text>
         <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', paddingVertical: 20}}>
-          Set your mood in Brain Dump{'\n'}and it will appear here.
+          {t('review.brainMoodEmptyState')}
         </Text>
       </View>
     );
@@ -353,7 +358,7 @@ const MoodInsights: React.FC = () => {
     <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
       {/* Header row */}
       <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16}}>
-        <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600'}}>Brain Mood</Text>
+        <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600'}}>{ t('review.brainMoodTitle')}</Text>
         <View style={{flexDirection: 'row', gap: 4}}>
           {(['7d', '30d'] as const).map(v => (
             <TouchableOpacity
@@ -365,7 +370,7 @@ const MoodInsights: React.FC = () => {
                 borderWidth: 1, borderColor: view === v ? '#6E6AF2' : '#1F2330',
               }}>
               <Text style={{color: view === v ? '#6E6AF2' : '#4B5563', fontSize: 12, fontWeight: '600'}}>
-                {v === '7d' ? '7 days' : '30 days'}
+                {v === '7d' ? t('review.moodPeriod7d') : t('review.moodPeriod30d')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -375,7 +380,7 @@ const MoodInsights: React.FC = () => {
       {/* Mood bars */}
       {total === 0 ? (
         <Text style={{color: '#4B5563', fontSize: 13, textAlign: 'center', paddingVertical: 8}}>
-          No moods logged in this period.
+          {t('review.moodNoLogged')}
         </Text>
       ) : (
         stats.map(s => (
@@ -402,7 +407,7 @@ const MoodInsights: React.FC = () => {
         <>
           <View style={{height: 1, backgroundColor: '#1F2330', marginVertical: 14}} />
           <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginBottom: 10}}>
-            RECENT
+            {t('review.moodRecentLabel')}
           </Text>
           <View style={{flexDirection: 'row', gap: 6}}>
             {history.map(entry => (
@@ -428,7 +433,9 @@ const MoodInsights: React.FC = () => {
 };
 
 // Pro Upsell Banner
-const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature, onUpgrade}) => (
+const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature, onUpgrade}) => {
+  const {t} = useTranslation();
+  return (
   <TouchableOpacity
     onPress={onUpgrade}
     style={{
@@ -445,13 +452,15 @@ const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature,
       {feature}
     </Text>
     <Text style={{color: '#9AA0A6', fontSize: 13, textAlign: 'center'}}>
-      Upgrade to Pro to unlock this.
+      {t('review.proUpsellSubtitle')}
     </Text>
   </TouchableOpacity>
-);
+  );
+};
 
 // Main Review Screen
 const ReviewScreen: React.FC = () => {
+  const {t} = useTranslation();
   const logs = useLogStore(state => state.logs); // subscribe to trigger re-renders
   const getProcessedItems = useLogStore(state => state.getProcessedItems);
   const allLogs = useMemo(() => getProcessedItems(), [logs]); // only processed items
@@ -495,7 +504,7 @@ const ReviewScreen: React.FC = () => {
       <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32}}>
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
+            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>{t('review.screenTitle')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
             </TouchableOpacity>
@@ -508,7 +517,7 @@ const ReviewScreen: React.FC = () => {
             resizeMode="contain"
           />
           <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center'}}>
-            Nothing here yet. Processed items from Inbox will appear here.
+            {t('review.emptyState')}
           </Text>
         </View>
       </View>
@@ -527,7 +536,7 @@ const ReviewScreen: React.FC = () => {
         {/* Header */}
         <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 16}}>
           <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Review</Text>
+            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>{t('review.screenTitle')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
             </TouchableOpacity>
@@ -550,16 +559,16 @@ const ReviewScreen: React.FC = () => {
         {isPro ? (
           <ActivityHeatmap logsByDay={logsByDay} tasksByDay={completedTasksByDay} />
         ) : (
-          <ProUpsell feature="📊 Activity Heatmap" onUpgrade={() => navigation.navigate('Paywall')} />
+          <ProUpsell feature={t('review.heatmapProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall')} />
         )}
         <MoodInsights />
         {completedTasks.length > 0 && (
           <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
             <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-              Tasks Completed
+              {t('review.tasksCompletedTitle')}
             </Text>
             <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 16}}>
-              {completedTasks.length} {completedTasks.length === 1 ? 'task' : 'tasks'} done
+              {t('review.tasksCompletedCount', {count: completedTasks.length})}
             </Text>
             {completedTasks.slice(0, 10).map(task => (
               <View
@@ -595,7 +604,7 @@ const ReviewScreen: React.FC = () => {
         {isPro ? (
           <SearchSection logs={allLogs} />
         ) : (
-          <ProUpsell feature="🔍 Search Logs" onUpgrade={() => navigation.navigate('Paywall')} />
+          <ProUpsell feature={t('review.searchProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall')} />
         )}
       </ScrollView>
       </ImageBackground>
