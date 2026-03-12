@@ -1,9 +1,11 @@
 /**
- * Widget Configuration Screen
- * Configure up to 3 quick-log preset buttons for the iOS widget
+ * Widget Configuration Screen — Quick Capture Setup
+ *
+ * Redesign: widget as a fast extension of Brain Dump.
+ * Capture first, organize later.
  */
 
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -11,428 +13,548 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Platform,
   NativeModules,
-  ImageBackground,
+  Switch,
+  Modal,
 } from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Haptics} from '../utils/haptics';
-import {useLogStore} from '../stores/useLogStore';
-import {useSubscriptionStore, FREE_WIDGET_PRESET_LIMIT} from '../stores/useSubscriptionStore';
+import {WidgetActionType, WidgetActionConfig, WidgetConfigState} from '../models/types';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 
 const {WidgetPresetsModule} = NativeModules;
 
-interface WidgetPreset {
-  id: string;
+// ─── Action type metadata ──────────────────────────────────────────────────────
+
+interface ActionMeta {
+  emoji: string;
   label: string;
-  text: string;
-  icon: string;
-  bucketId?: string | null;
+  description: string;
+  icon: string;       // SF Symbol name passed to the iOS widget
+  color: string;
+  deepLink: boolean;  // true = Link(url), false = AppIntent
+  defaultLabel: string;
 }
 
-const DEFAULT_ICONS = ['plus.circle', 'note.text', 'dumbbell', 'sparkles', 'star.fill', 'drop.fill'];
+const ACTION_META: Record<WidgetActionType, ActionMeta> = {
+  thought: {
+    emoji: '💭',
+    label: 'Quick Thought',
+    description: 'Saves a thought instantly to Brain Dump',
+    icon: 'bubble.left.fill',
+    color: '#6E6AF2',
+    deepLink: false,
+    defaultLabel: 'Thought',
+  },
+  task: {
+    emoji: '✅',
+    label: 'Quick Task',
+    description: 'Creates a task to process later in Inbox',
+    icon: 'checkmark.circle.fill',
+    color: '#6EF2A8',
+    deepLink: false,
+    defaultLabel: 'Task',
+  },
+  idea: {
+    emoji: '💡',
+    label: 'Quick Idea',
+    description: 'Captures an idea to explore later',
+    icon: 'lightbulb.fill',
+    color: '#F2E06E',
+    deepLink: false,
+    defaultLabel: 'Idea',
+  },
+  mood: {
+    emoji: '🙂',
+    label: 'Mood Check',
+    description: 'Opens the mood picker in Brain Dump',
+    icon: 'face.smiling.fill',
+    color: '#F29B6E',
+    deepLink: true,
+    defaultLabel: 'Mood',
+  },
+  brainDump: {
+    emoji: '🧠',
+    label: 'Brain Dump',
+    description: 'Opens Brain Dump screen directly',
+    icon: 'square.and.pencil',
+    color: '#6EE0F2',
+    deepLink: true,
+    defaultLabel: 'Brain Dump',
+  },
+};
+
+const ALL_ACTION_TYPES: WidgetActionType[] = ['thought', 'task', 'idea', 'mood', 'brainDump'];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+const createAction = (type: WidgetActionType): WidgetActionConfig => ({
+  id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  type,
+  label: ACTION_META[type].defaultLabel,
+  icon: ACTION_META[type].icon,
+  defaultBucketId: null,
+  saveInstantly: !ACTION_META[type].deepLink,
+  openAppAfterTap: ACTION_META[type].deepLink,
+});
+
+const DEFAULT_CONFIG: WidgetConfigState = {
+  layout: 'multi',
+  actions: [
+    {...createAction('thought'), id: 'default-thought'},
+    {...createAction('task'),    id: 'default-task'},
+    {...createAction('idea'),    id: 'default-idea'},
+    {...createAction('mood'),    id: 'default-mood'},
+  ],
+  sendToInboxByDefault: true,
+  showUnprocessedCount: true,
+  showTodayMood: false,
+};
+
+// ─── Screen ────────────────────────────────────────────────────────────────────
 
 const WidgetConfigScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [presets, setPresets] = useState<WidgetPreset[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
-  // Get buckets directly from the store (source of truth)
-  const buckets = useLogStore(state => state.buckets);
-  const refreshBuckets = useLogStore(state => state.refreshBuckets);
   const isPro = useSubscriptionStore(state => state.isPro);
+  const [config, setConfig] = useState<WidgetConfigState>(DEFAULT_CONFIG);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showActionPicker, setShowActionPicker] = useState(false);
 
-  useEffect(() => {
-    // Load saved presets from native side
-    loadPresets();
-    
-    // Debug: Check if native module is available
-    if (__DEV__) {
-      if (!WidgetPresetsModule) {
-        console.warn('WidgetPresetsModule not found - native files not linked in Xcode');
-      } else {
-        console.log('✅ WidgetPresetsModule loaded');
-      }
-    }
-  }, []);
-
-  // Reload buckets every time screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      refreshBuckets();
-    }, [refreshBuckets])
+      loadConfig();
+    }, []),
   );
 
-  const loadPresets = async () => {
-    if (!WidgetPresetsModule) {
-      setPresets([]);
-      return;
-    }
-
+  const loadConfig = async () => {
+    if (!WidgetPresetsModule) return;
     try {
-      const presetsJson = await WidgetPresetsModule.loadPresets();
-      if (presetsJson && presetsJson !== '[]') {
-        const loadedPresets = JSON.parse(presetsJson);
-        setPresets(loadedPresets);
-      } else {
-        setPresets([]);
+      // Try new config key first
+      const json: string | null = await WidgetPresetsModule.loadWidgetConfig?.();
+      if (json && json !== '{}' && json !== 'null') {
+        const loaded = JSON.parse(json) as Partial<WidgetConfigState>;
+        if (loaded?.actions?.length) {
+          // Free users: clamp to single layout + 1 action
+          if (!isPro) {
+            setConfig({...(loaded as WidgetConfigState), layout: 'single', actions: loaded.actions.slice(0, 1)});
+          } else {
+            setConfig(loaded as WidgetConfigState);
+          }
+          return;
+        }
       }
-    } catch (error) {
-      console.warn('Failed to load presets from App Group:', error);
-      setPresets([]);
+      // Fall back to legacy presets → convert to new format
+      const legacyJson: string = await WidgetPresetsModule.loadPresets();
+      if (legacyJson && legacyJson !== '[]') {
+        const legacy = JSON.parse(legacyJson) as any[];
+        if (legacy.length > 0) {
+          const converted: WidgetActionConfig[] = legacy.map((p: any) => ({
+            id: p.id,
+            type: 'thought' as WidgetActionType,
+            label: p.label || 'Thought',
+            icon: p.icon || 'bubble.left.fill',
+            defaultBucketId: p.bucketId ?? null,
+            saveInstantly: true,
+            openAppAfterTap: false,
+          }));
+          const actions = isPro ? converted : converted.slice(0, 1);
+          setConfig({...DEFAULT_CONFIG, layout: isPro ? DEFAULT_CONFIG.layout : 'single', actions});
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load widget config', e);
     }
   };
 
-  const savePresets = async () => {
+  const saveConfig = async () => {
     if (!WidgetPresetsModule) {
-      Alert.alert('Error', 'Widget configuration is only available on iOS');
+      Alert.alert('Error', 'Widget configuration is only available on iOS.');
       return;
     }
-
-    try {
-      const presetsJson = JSON.stringify(presets);
-      await WidgetPresetsModule.setWidgetPresets(presetsJson);
-      Haptics.success();
-      Alert.alert('Success', 'Widget presets saved! Your home screen widget will update.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save widget presets');
-    }
-  };
-
-  const addPreset = () => {
-    // Check limit based on subscription tier
-    const limit = isPro ? 10 : FREE_WIDGET_PRESET_LIMIT; // Max 10 even for Pro (UI constraint)
-    
-    if (presets.length >= limit) {
-      if (!isPro) {
-        (navigation as any).navigate('Paywall');
-        return;
-      }
-      Alert.alert('Limit Reached', 'Maximum widget presets reached');
-      return;
-    }
-
-    const newPreset: WidgetPreset = {
-      id: `preset-${Date.now()}`,
-      label: 'Quick Log',
-      text: '',
-      icon: DEFAULT_ICONS[presets.length] || 'plus.circle',
-      bucketId: null,
+    const maxActions = !isPro ? 1 : config.layout === 'single' ? 1 : 4;
+    const trimmed: WidgetConfigState = {
+      ...config,
+      actions: config.actions.slice(0, maxActions),
     };
+    if (!WidgetPresetsModule.setWidgetConfig) {
+      Alert.alert('Error', 'setWidgetConfig not available — rebuild the app from Xcode.');
+      return;
+    }
+    try {
+      await WidgetPresetsModule.setWidgetConfig(JSON.stringify(trimmed));
+      Haptics.success();
+      Alert.alert('Saved ✓', 'Widget updated. Long-press your Home Screen to add the Instalog widget.');
+    } catch (e: any) {
+      Alert.alert('Error', `Failed to save widget config: ${e?.message ?? String(e)}`);
+    }
+  };
 
-    setPresets([...presets, newPreset]);
-    setEditingId(newPreset.id);
+  const maxActions = !isPro ? 1 : config.layout === 'single' ? 1 : 4;
+
+  const addAction = (type: WidgetActionType) => {
+    if (config.actions.length >= maxActions) return;
+    const action = createAction(type);
+    setConfig(c => ({...c, actions: [...c.actions, action]}));
+    setExpandedId(action.id);
+    setShowActionPicker(false);
     Haptics.light();
   };
 
-  const removePreset = (id: string) => {
-    Alert.alert('Remove Preset', 'Remove this widget button?', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          const updatedPresets = presets.filter(p => p.id !== id);
-          setPresets(updatedPresets);
-          Haptics.warning();
-          
-          // Auto-save to widget after deletion
-          if (WidgetPresetsModule) {
-            try {
-              const presetsJson = JSON.stringify(updatedPresets);
-              await WidgetPresetsModule.setWidgetPresets(presetsJson);
-            } catch (error) {
-              console.warn('Failed to update widget after deletion', error);
-            }
-          }
-        },
-      },
-    ]);
+  const removeAction = (id: string) => {
+    setConfig(c => ({...c, actions: c.actions.filter(a => a.id !== id)}));
+    Haptics.warning();
   };
 
-  const updatePreset = (id: string, updates: Partial<WidgetPreset>) => {
-    setPresets(presets.map(p => (p.id === id ? {...p, ...updates} : p)));
-  };
-
-  const movePreset = (index: number, direction: 'up' | 'down') => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= presets.length) return;
-
-    const newPresets = [...presets];
-    [newPresets[index], newPresets[newIndex]] = [newPresets[newIndex], newPresets[index]];
-    setPresets(newPresets);
-    Haptics.selection();
+  const updateAction = (id: string, updates: Partial<WidgetActionConfig>) => {
+    setConfig(c => ({
+      ...c,
+      actions: c.actions.map(a => (a.id === id ? {...a, ...updates} : a)),
+    }));
   };
 
   return (
     <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
-      <ImageBackground
-        source={require('../../assets/logonobg.png')}
-        style={{flex: 1}}
-        imageStyle={{opacity: 0.03, resizeMode: 'center'}}
-        resizeMode="center">
-        {/* Header */}
-        <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 16}}>
+      {/* Header */}
+      <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 4}}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{marginBottom: 16}}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+          <Text style={{color: '#6E6AF2', fontSize: 16}}>← Back</Text>
+        </TouchableOpacity>
         <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>
-          Widget Config
+          Quick Capture
         </Text>
-        <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4}}>
-          Quick-log buttons for your home screen
+        <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4, marginBottom: 24}}>
+          Capture first, organize later — right from your Home Screen
         </Text>
       </View>
 
       <ScrollView
-        style={{flex: 1}}
-        contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 32}}
+        contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 48}}
         showsVerticalScrollIndicator={false}>
-        
-        {/* Info Card */}
-        <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
-          <Text style={{color: '#6E6AF2', fontSize: 16, fontWeight: '600', marginBottom: 8}}>
-            iOS 17+ Interactive Widget
-          </Text>
-          <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-            Configure up to 3 buttons that log instantly from your home screen without opening the app.
-          </Text>
+
+        {/* ─── Layout ─── */}
+        <SectionLabel>WIDGET LAYOUT</SectionLabel>
+        <View style={{flexDirection: 'row', gap: 10, marginBottom: 28}}>
+          {(['single', 'multi'] as const).map(l => {
+            const isLocked = l === 'multi' && !isPro;
+            return (
+            <TouchableOpacity
+              key={l}
+              onPress={() => {
+                if (isLocked) {
+                  navigation.navigate('Paywall' as never);
+                  return;
+                }
+                setConfig(c => ({...c, layout: l}));
+                Haptics.selection();
+              }}
+              style={{
+                flex: 1, padding: 16, borderRadius: 14, alignItems: 'center', gap: 6,
+                backgroundColor: config.layout === l ? '#6E6AF222' : '#141821',
+                borderWidth: 2,
+                borderColor: config.layout === l ? '#6E6AF2' : '#1F2330',
+                opacity: isLocked ? 0.6 : 1,
+              }}>
+              <Text style={{fontSize: 22}}>{l === 'single' ? '□' : '⊞'}</Text>
+              <Text style={{
+                color: config.layout === l ? '#EDEEF0' : '#9AA0A6',
+                fontSize: 14, fontWeight: '600',
+              }}>
+                {l === 'single' ? 'Single' : 'Multi'}{isLocked ? ' ⭐' : ''}
+              </Text>
+              <Text style={{color: '#4B5563', fontSize: 11, textAlign: 'center'}}>
+                {l === 'single' ? '1 action' : 'Up to 4 actions'}
+              </Text>
+            </TouchableOpacity>
+          );
+          })}
         </View>
 
-        {/* Presets List */}
-        {presets.map((preset, index) => (
-          <View
-            key={preset.id}
-            style={{
-              backgroundColor: '#141821',
-              borderRadius: 16,
-              padding: 20,
-              marginBottom: 16,
-              borderWidth: editingId === preset.id ? 2 : 0,
-              borderColor: '#6E6AF2',
-            }}>
-            
-            {/* Header with reorder buttons */}
-            <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 12}}>
-              <Text style={{color: '#9AA0A6', fontSize: 14, flex: 1}}>
-                Button {index + 1}
-              </Text>
-              
-              {/* Reorder buttons */}
-              <View style={{flexDirection: 'row'}}>
-                {index > 0 && (
-                  <TouchableOpacity
-                    onPress={() => movePreset(index, 'up')}
-                    style={{padding: 8, marginRight: 4}}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Move up">
-                    <Text style={{color: '#6E6AF2', fontSize: 18}}>↑</Text>
-                  </TouchableOpacity>
-                )}
-                {index < presets.length - 1 && (
-                  <TouchableOpacity
-                    onPress={() => movePreset(index, 'down')}
-                    style={{padding: 8, marginRight: 4}}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Move down">
-                    <Text style={{color: '#6E6AF2', fontSize: 18}}>↓</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={() => removePreset(preset.id)}
-                  style={{padding: 8}}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove preset">
-                  <Text style={{color: '#EF4444', fontSize: 18}}>×</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+        {/* ─── Actions ─── */}
+        <SectionLabel>{`ACTIONS (${config.actions.length}/${maxActions})`}</SectionLabel>
 
-            {/* Label Input */}
-            <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 6}}>
-              Button Label
-            </Text>
-            <TextInput
-              value={preset.label}
-              onChangeText={text => updatePreset(preset.id, {label: text})}
-              placeholder="e.g., Workout, Note, Idea"
-              placeholderTextColor="#9AA0A6"
-              maxLength={15}
+        {config.actions.map(action => {
+          const meta = ACTION_META[action.type];
+          const isExpanded = expandedId === action.id;
+          return (
+            <View
+              key={action.id}
               style={{
-                backgroundColor: '#0B0D10',
-                color: '#EDEEF0',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderRadius: 12,
-                fontSize: 16,
-                marginBottom: 16,
-              }}
-              onFocus={() => setEditingId(preset.id)}
-              accessible={true}
-              accessibilityLabel="Button label"
-            />
-
-            {/* Log Text Input */}
-            <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 6}}>
-              Log Text (what gets saved)
-            </Text>
-            <TextInput
-              value={preset.text}
-              onChangeText={text => updatePreset(preset.id, {text})}
-              placeholder="e.g., Workout completed, Quick note"
-              placeholderTextColor="#9AA0A6"
-              maxLength={100}
-              multiline
-              style={{
-                backgroundColor: '#0B0D10',
-                color: '#EDEEF0',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderRadius: 12,
-                fontSize: 16,
-                minHeight: 60,
-                marginBottom: 16,
-              }}
-              onFocus={() => setEditingId(preset.id)}
-              accessible={true}
-              accessibilityLabel="Log text"
-            />
-
-            {/* Bucket Selector */}
-            <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 8}}>
-              Auto-assign to Bucket (optional)
-            </Text>
-            <View style={{flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16}}>
+                backgroundColor: '#141821', borderRadius: 14, marginBottom: 10,
+                borderWidth: 1,
+                borderColor: isExpanded ? meta.color + '55' : '#1F2330',
+                overflow: 'hidden',
+              }}>
+              {/* Action row header */}
               <TouchableOpacity
                 onPress={() => {
-                  updatePreset(preset.id, {bucketId: null});
+                  setExpandedId(isExpanded ? null : action.id);
                   Haptics.selection();
                 }}
-                style={{
-                  backgroundColor: !preset.bucketId ? '#6E6AF2' : '#0B0D10',
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  marginRight: 8,
-                  marginBottom: 8,
-                }}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="No bucket">
-                <Text style={{color: '#EDEEF0', fontSize: 14}}>
-                  None
-                </Text>
+                style={{flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12}}>
+                <View style={{
+                  width: 36, height: 36, borderRadius: 18,
+                  backgroundColor: meta.color + '22',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Text style={{fontSize: 17}}>{meta.emoji}</Text>
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600'}}>
+                    {action.label}
+                  </Text>
+                  <Text style={{color: '#4B5563', fontSize: 11, marginTop: 1}}>
+                    {meta.label}{meta.deepLink ? ' · Opens app' : ' · Saves instantly'}
+                  </Text>
+                </View>
+                {config.actions.length > 1 && (
+                  <TouchableOpacity
+                    onPress={() => removeAction(action.id)}
+                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                    style={{padding: 4}}>
+                    <Text style={{color: '#EF4444', fontSize: 20, lineHeight: 22}}>×</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={{color: '#4B5563', fontSize: 11}}>{isExpanded ? '▲' : '▼'}</Text>
               </TouchableOpacity>
-              {buckets.map(bucket => (
-                <TouchableOpacity
-                  key={bucket.id}
-                  onPress={() => {
-                    updatePreset(preset.id, {bucketId: bucket.id});
-                    Haptics.selection();
-                  }}
-                  style={{
-                    backgroundColor: preset.bucketId === bucket.id ? '#6E6AF2' : '#0B0D10',
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                    marginRight: 8,
-                    marginBottom: 8,
-                  }}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Bucket ${bucket.name}`}>
-                  <Text style={{color: '#EDEEF0', fontSize: 14}}>
-                    {bucket.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
 
-            {/* Icon Selector */}
-            <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 8}}>
-              Icon
-            </Text>
-            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-              {DEFAULT_ICONS.map(icon => (
-                <TouchableOpacity
-                  key={icon}
-                  onPress={() => {
-                    updatePreset(preset.id, {icon});
-                    Haptics.selection();
-                  }}
-                  style={{
-                    backgroundColor: preset.icon === icon ? '#6E6AF2' : '#0B0D10',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    marginRight: 8,
-                    marginBottom: 8,
-                  }}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Icon ${icon}`}>
-                  <Text style={{color: '#EDEEF0', fontSize: 14}}>
-                    {icon.split('.')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ))}
+              {/* Expanded config */}
+              {isExpanded && (
+                <View style={{
+                  paddingHorizontal: 14, paddingBottom: 16,
+                  borderTopWidth: 1, borderTopColor: '#1F2330', paddingTop: 14, gap: 16,
+                }}>
+                  {/* Action type */}
+                  <View>
+                    <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 8}}>
+                      Action Type
+                    </Text>
+                    <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 6}}>
+                      {ALL_ACTION_TYPES.map(t => {
+                        const m = ACTION_META[t];
+                        const selected = action.type === t;
+                        return (
+                          <TouchableOpacity
+                            key={t}
+                            onPress={() => {
+                              updateAction(action.id, {
+                                type: t,
+                                icon: m.icon,
+                                saveInstantly: !m.deepLink,
+                                openAppAfterTap: m.deepLink,
+                              });
+                              Haptics.selection();
+                            }}
+                            style={{
+                              paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                              backgroundColor: selected ? m.color + '22' : '#0B0D10',
+                              borderWidth: 1,
+                              borderColor: selected ? m.color : '#1F2330',
+                              flexDirection: 'row', alignItems: 'center', gap: 5,
+                            }}>
+                            <Text style={{fontSize: 12}}>{m.emoji}</Text>
+                            <Text style={{color: selected ? m.color : '#9AA0A6', fontSize: 12}}>
+                              {m.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
 
-        {/* Add Preset Button */}
-        {presets.length < 3 && (
+                  {/* Custom label */}
+                  <View>
+                    <Text style={{color: '#9AA0A6', fontSize: 12, marginBottom: 6}}>
+                      Button Label
+                    </Text>
+                    <TextInput
+                      value={action.label}
+                      onChangeText={t => updateAction(action.id, {label: t})}
+                      placeholder={meta.defaultLabel}
+                      placeholderTextColor="#4B5563"
+                      maxLength={16}
+                      style={{
+                        backgroundColor: '#0B0D10', color: '#EDEEF0',
+                        paddingHorizontal: 14, paddingVertical: 10,
+                        borderRadius: 10, fontSize: 15,
+                      }}
+                    />
+                  </View>
+
+
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        {/* Add action */}
+        {config.actions.length < maxActions && (
           <TouchableOpacity
-            onPress={addPreset}
+            onPress={() => setShowActionPicker(true)}
+            style={{
+              borderWidth: 2, borderColor: '#6E6AF244', borderStyle: 'dashed',
+              borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 28,
+            }}>
+            <Text style={{color: '#6E6AF2', fontSize: 15, fontWeight: '600'}}>
+              + Add Action
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ─── Display Settings ─── */}
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10}}>
+          <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6}}>
+            DISPLAY SETTINGS
+          </Text>
+          {!isPro && <Text style={{color: '#F59E0B', fontSize: 11, fontWeight: '700'}}>⭐ PRO</Text>}
+        </View>
+        <TouchableOpacity
+          activeOpacity={isPro ? 1 : 0.85}
+          disabled={isPro}
+          onPress={() => navigation.navigate('Paywall' as never)}>
+          <View
+            pointerEvents={isPro ? 'auto' : 'none'}
+            style={{opacity: isPro ? 1 : 0.4, backgroundColor: '#141821', borderRadius: 14, overflow: 'hidden', marginBottom: 28}}>
+            <ToggleRow
+              label="Show unprocessed count"
+              sublabel="Inbox badge on the widget"
+              value={config.showUnprocessedCount}
+              onChange={v => setConfig(c => ({...c, showUnprocessedCount: v}))}
+              padded
+            />
+            <View style={{height: 1, backgroundColor: '#1F2330'}} />
+            <ToggleRow
+              label="Show today's mood"
+              sublabel="Brain mood on widget if space allows"
+              value={config.showTodayMood}
+              onChange={v => setConfig(c => ({...c, showTodayMood: v}))}
+              padded
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Save */}
+        <TouchableOpacity
+          onPress={saveConfig}
+          style={{
+            backgroundColor: '#6E6AF2', paddingVertical: 17,
+            borderRadius: 14, alignItems: 'center', marginBottom: 16,
+          }}
+          activeOpacity={0.8}>
+          <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
+            Save &amp; Update Widget
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={{color: '#4B5563', fontSize: 13, textAlign: 'center', lineHeight: 18}}>
+          Long-press your Home Screen → tap + → find Instalog
+        </Text>
+      </ScrollView>
+
+      {/* ─── Action Picker Modal ─── */}
+      <Modal visible={showActionPicker} transparent animationType="slide">
+        <TouchableOpacity
+          style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'}}
+          onPress={() => setShowActionPicker(false)}
+          activeOpacity={1}>
+          <View
             style={{
               backgroundColor: '#141821',
-              borderWidth: 2,
-              borderColor: '#6E6AF2',
-              borderStyle: 'dashed',
-              borderRadius: 16,
-              paddingVertical: 20,
-              alignItems: 'center',
-              marginBottom: 20,
+              borderTopLeftRadius: 20, borderTopRightRadius: 20,
+              padding: 24,
             }}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Add preset button">
-            <Text style={{color: '#6E6AF2', fontSize: 16, fontWeight: '600'}}>
-              + Add Button ({presets.length}/3)
+            onStartShouldSetResponder={() => true}>
+            <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '700', marginBottom: 4}}>
+              Add Action
             </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Save Button */}
-        {presets.length > 0 && (
-          <TouchableOpacity
-            onPress={savePresets}
-            style={{
-              backgroundColor: '#6E6AF2',
-              paddingVertical: 16,
-              borderRadius: 16,
-              marginBottom: 20,
-            }}
-            activeOpacity={0.8}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Save widget configuration">
-            <Text style={{color: '#EDEEF0', textAlign: 'center', fontSize: 18, fontWeight: '600'}}>
-              Save & Update Widget
+            <Text style={{color: '#9AA0A6', fontSize: 13, marginBottom: 20}}>
+              What should this widget button do?
             </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Help Text */}
-        <View style={{paddingVertical: 20}}>
-          <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20, textAlign: 'center'}}>
-            After saving, long-press your home screen to add the Instalog widget. Tap any button to log instantly!
-          </Text>
-        </View>
-      </ScrollView>
-      </ImageBackground>
+            {ALL_ACTION_TYPES.map(t => {
+              const m = ACTION_META[t];
+              const added = config.actions.some(a => a.type === t);
+              return (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => !added && addAction(t)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 14,
+                    paddingVertical: 14,
+                    borderBottomWidth: 1, borderBottomColor: '#1F2330',
+                    opacity: added ? 0.38 : 1,
+                  }}>
+                  <View style={{
+                    width: 42, height: 42, borderRadius: 21,
+                    backgroundColor: m.color + '22',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Text style={{fontSize: 20}}>{m.emoji}</Text>
+                  </View>
+                  <View style={{flex: 1}}>
+                    <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600'}}>
+                      {m.label}
+                    </Text>
+                    <Text style={{color: '#4B5563', fontSize: 12, marginTop: 2}}>
+                      {m.description}
+                    </Text>
+                  </View>
+                  <Text style={{color: added ? '#4B5563' : m.color, fontSize: added ? 12 : 22}}>
+                    {added ? 'Added' : '+'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              onPress={() => setShowActionPicker(false)}
+              style={{
+                marginTop: 20, paddingVertical: 14, alignItems: 'center',
+                backgroundColor: '#0B0D10', borderRadius: 14,
+              }}>
+              <Text style={{color: '#9AA0A6', fontSize: 16}}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{children: string}> = ({children}) => (
+  <Text style={{
+    color: '#4B5563', fontSize: 11, fontWeight: '600',
+    letterSpacing: 0.6, marginBottom: 10,
+  }}>
+    {children}
+  </Text>
+);
+
+const ToggleRow: React.FC<{
+  label: string;
+  sublabel: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  padded?: boolean;
+}> = ({label, sublabel, value, onChange, padded = false}) => (
+  <View style={{
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    ...(padded ? {paddingHorizontal: 16, paddingVertical: 14} : {}),
+  }}>
+    <View style={{flex: 1}}>
+      <Text style={{color: '#EDEEF0', fontSize: 15}}>{label}</Text>
+      <Text style={{color: '#4B5563', fontSize: 12, marginTop: 1}}>{sublabel}</Text>
+    </View>
+    <Switch
+      value={value}
+      onValueChange={v => { onChange(v); Haptics.selection(); }}
+      trackColor={{false: '#1F2330', true: '#6E6AF244'}}
+      thumbColor={value ? '#6E6AF2' : '#4B5563'}
+    />
+  </View>
+);
 
 export default WidgetConfigScreen;

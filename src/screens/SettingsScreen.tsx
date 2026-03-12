@@ -28,9 +28,7 @@ import {MOODS} from '../utils/moods';
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const logs = useLogStore(state => state.logs);
-  const buckets = useLogStore(state => state.buckets);
   const refreshLogs = useLogStore(state => state.refreshLogs);
-  const refreshBuckets = useLogStore(state => state.refreshBuckets);
   const [showSadMood, setShowSadMood] = useState(false);
   
   const {isPro, totalLogCount, restorePurchases, setPro} = useSubscriptionStore();
@@ -43,7 +41,6 @@ const SettingsScreen: React.FC = () => {
     try {
       const exportData = {
         logs,
-        buckets,
         exportedAt: new Date().toISOString(),
         version: '1.0.3',
       };
@@ -65,7 +62,7 @@ const SettingsScreen: React.FC = () => {
   const handleClearAllData = () => {
     Alert.alert(
       'Clear All Data',
-      'This will permanently delete all logs and buckets. This cannot be undone.',
+      'This will permanently delete all your logs. This cannot be undone.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -74,7 +71,6 @@ const SettingsScreen: React.FC = () => {
           onPress: () => {
             storage.clearAll();
             refreshLogs();
-            refreshBuckets();
             Haptics.warning();
             Alert.alert('Done', 'All data has been cleared');
             setShowSadMood(true);
@@ -171,7 +167,7 @@ const SettingsScreen: React.FC = () => {
           ) : (
             <>
               <Text style={{color: '#9AA0A6', fontSize: 15, lineHeight: 22, marginBottom: 8}}>
-                Upgrade to Pro for clock view, reminders, insights, export, and unlimited buckets.
+                Upgrade to Pro for clock view, reminders, insights, and export.
               </Text>
               <Text style={{color: '#6B7280', fontSize: 13, marginBottom: 16}}>
                 Logging and basic tasks are always free.
@@ -249,10 +245,10 @@ const SettingsScreen: React.FC = () => {
               <Text style={{fontSize: 16, marginRight: 12}}>⚡</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Quick Log with Bucket
+                  Tap to capture
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  If your widget button has a bucket assigned, logs go directly to that bucket.
+                  Hit the big button and your log is saved instantly. No decisions needed.
                 </Text>
               </View>
             </View>
@@ -261,22 +257,22 @@ const SettingsScreen: React.FC = () => {
               <Text style={{fontSize: 16, marginRight: 12}}>📥</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Quick Log without Bucket
+                  Review in Wrap Up
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  No bucket? No problem. Logs land in Wrap Up where you can sort them later.
+                  At the end of the day, see everything you captured and process it at your own pace.
                 </Text>
               </View>
             </View>
             
             <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-              <Text style={{fontSize: 16, marginRight: 12}}>🪣</Text>
+              <Text style={{fontSize: 16, marginRight: 12}}>🔁</Text>
               <View style={{flex: 1}}>
                 <Text style={{color: '#EDEEF0', fontSize: 15, fontWeight: '600', marginBottom: 4}}>
-                  Buckets are Optional
+                  Reflect in Review
                 </Text>
                 <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 20}}>
-                  Organize when you have time. Buckets help track different areas of your life.
+                  Look back at patterns, notes, and momentum over time.
                 </Text>
               </View>
             </View>
@@ -350,10 +346,6 @@ const SettingsScreen: React.FC = () => {
           <View style={{marginBottom: 12}}>
             <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>Total Logs</Text>
             <Text style={{color: '#EDEEF0', fontSize: 16}}>{logs.length}</Text>
-          </View>
-          <View>
-            <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 4}}>Buckets</Text>
-            <Text style={{color: '#EDEEF0', fontSize: 16}}>{buckets.length}</Text>
           </View>
         </View>
 

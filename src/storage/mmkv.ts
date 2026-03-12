@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   BUCKETS: '@instalog/buckets',
   TASKS: '@instalog/tasks',
   HINTS: 'hints',
+  MOOD_ENTRIES: '@instalog/moodEntries',
 } as const;
 
 // Check if we can use App Group storage (iOS with native module)
@@ -114,6 +115,13 @@ class Storage {
           console.warn('[Storage] ❌ Failed to save logs to App Group', error);
         });
     }
+
+    // Also sync tasks to App Group for widget access
+    if (canUseAppGroup && key === STORAGE_KEYS.TASKS) {
+      WidgetPresetsModule.saveTasks?.(json).catch((error: Error) => {
+        console.warn('[Storage] ❌ Failed to save tasks to App Group', error);
+      });
+    }
   }
 
   delete(key: string): void {
@@ -152,6 +160,16 @@ class Storage {
       }
     } catch (error) {
       console.warn('Failed to reload from App Group', error);
+    }
+
+    try {
+      const tasksJson = await WidgetPresetsModule.loadTasks?.();
+      if (tasksJson && tasksJson !== '[]') {
+        this.cache.set(STORAGE_KEYS.TASKS, tasksJson);
+        await AsyncStorage.setItem(STORAGE_KEYS.TASKS, tasksJson);
+      }
+    } catch (error) {
+      console.warn('Failed to reload tasks from App Group', error);
     }
   }
 }

@@ -19,14 +19,16 @@ import {
   KeyboardAvoidingView,
   Dimensions,
   Image,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Svg, {Circle, Path, Line, Text as SvgText} from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 import {useNavigation} from '@react-navigation/native';
 import {useTaskStore} from '../stores/useTaskStore';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
-import {Task, formatTime} from '../models/types';
+import {Task, RecurrenceType, formatTime} from '../models/types';
 import {Haptics} from '../utils/haptics';
 import {requestNotificationPermission} from '../utils/notifications';
 import {MOODS} from '../utils/moods';
@@ -52,9 +54,11 @@ const ARC_COLORS = [
 const CLOCK_SIZE = Dimensions.get('window').width - 80;
 const CENTER = CLOCK_SIZE / 2;
 const CLOCK_RADIUS = CLOCK_SIZE / 2 - 20;
-const ARC_RADIUS = CLOCK_RADIUS - 18;
+const ARC_RADIUS_PM = CLOCK_RADIUS - 10; // outer ring = PM (close to edge)
+const ARC_RADIUS_AM = CLOCK_RADIUS - 38; // inner ring = AM (clearly separated)
+const RING_DIVIDER_RADIUS = (ARC_RADIUS_PM + ARC_RADIUS_AM) / 2;
 const HOUR_MARK_OUTER = CLOCK_RADIUS - 4;
-const HOUR_MARK_INNER = CLOCK_RADIUS - 14;
+const HOUR_MARK_INNER = CLOCK_RADIUS - 16;
 const HOUR_LABEL_RADIUS = CLOCK_RADIUS - 30;
 
 // Convert hours (0-12) to angle in radians (12 o'clock = top = -PI/2)
@@ -110,155 +114,227 @@ const ClockFace: React.FC<{
   const timedTasks = tasks.filter(t => t.dueTime && !t.completedAt);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
+  // Assign colors globally so each task has a unique color across AM+PM
+  const taskColors: Record<string, string> = {};
+  timedTasks.forEach((t, i) => {
+    taskColors[t.id] = ARC_COLORS[i % ARC_COLORS.length];
+  });
+
+  const amTasks = timedTasks.filter(t => new Date(t.dueTime!).getHours() < 12);
+  const pmTasks = timedTasks.filter(t => new Date(t.dueTime!).getHours() >= 12);
+
+  const renderArcs = (arcTasks: Task[], radius: number) =>
+    arcTasks.map(task => {
+      const taskHour = getClockHour(task.dueTime!);
+      // Use actual duration if set, otherwise default to 30 min
+      const spanHours = task.durationMinutes ? task.durationMinutes / 60 : 0.5;
+      const startAngle = hourToAngle(taskHour);
+      const endAngle = hourToAngle(taskHour + spanHours);
+      const color = taskColors[task.id];
+      const arcPath = describeArc(CENTER, CENTER, radius, startAngle, endAngle);
+      const isSelected = selectedTaskId === task.id;
+      const isOtherSelected = selectedTaskId !== null && !isSelected;
+      return (
+        <Path
+          key={task.id}
+          d={arcPath}
+          stroke={color}
+          strokeWidth={isSelected ? 11 : 7}
+          strokeLinecap="round"
+          fill="none"
+          opacity={isSelected ? 1 : isOtherSelected ? 0.2 : 0.9}
+          onPress={() => {
+            setSelectedTaskId(isSelected ? null : task.id);
+            onTaskPress(task);
+          }}
+        />
+      );
+    });
+
   return (
     <View style={{alignItems: 'center', marginBottom: 16}}>
-      <Svg width={CLOCK_SIZE} height={CLOCK_SIZE}>
-        {/* Clock background */}
-        <Circle
-          cx={CENTER}
-          cy={CENTER}
-          r={CLOCK_RADIUS}
-          fill="#141821"
-          stroke="#2A2D34"
-          strokeWidth={2}
-        />
+      <View style={{position: 'relative'}}>
+        <Svg width={CLOCK_SIZE} height={CLOCK_SIZE}>
+          {/* Clock background */}
+          <Circle
+            cx={CENTER}
+            cy={CENTER}
+            r={CLOCK_RADIUS}
+            fill="#141821"
+            stroke="#2A2D34"
+            strokeWidth={1.5}
+          />
 
-        {/* Hour marks and labels */}
-        {Array.from({length: 12}, (_, i) => {
-          const hour = i === 0 ? 12 : i;
-          const angle = hourToAngle(i);
-          const outerX = CENTER + HOUR_MARK_OUTER * Math.cos(angle);
-          const outerY = CENTER + HOUR_MARK_OUTER * Math.sin(angle);
-          const innerX = CENTER + HOUR_MARK_INNER * Math.cos(angle);
-          const innerY = CENTER + HOUR_MARK_INNER * Math.sin(angle);
-          const labelX = CENTER + HOUR_LABEL_RADIUS * Math.cos(angle);
-          const labelY = CENTER + HOUR_LABEL_RADIUS * Math.sin(angle);
+          {/* Ring divider — dashed circle between AM and PM zones */}
+          <Circle
+            cx={CENTER}
+            cy={CENTER}
+            r={RING_DIVIDER_RADIUS}
+            fill="none"
+            stroke="#2A2D34"
+            strokeWidth={1}
+            strokeDasharray="4 8"
+            opacity={0.6}
+          />
 
-          return (
-            <React.Fragment key={i}>
-              <Line
-                x1={innerX}
-                y1={innerY}
-                x2={outerX}
-                y2={outerY}
-                stroke="#3A3D44"
-                strokeWidth={i % 3 === 0 ? 2.5 : 1.5}
-              />
-              <SvgText
-                x={labelX}
-                y={labelY + 4}
-                fill="#6B7280"
-                fontSize={12}
-                fontWeight={i % 3 === 0 ? '600' : '400'}
-                textAnchor="middle">
-                {hour}
-              </SvgText>
-            </React.Fragment>
-          );
-        })}
+          {/* Hour marks and labels */}
+          {Array.from({length: 12}, (_, i) => {
+            const hour = i === 0 ? 12 : i;
+            const angle = hourToAngle(i);
+            const outerX = CENTER + HOUR_MARK_OUTER * Math.cos(angle);
+            const outerY = CENTER + HOUR_MARK_OUTER * Math.sin(angle);
+            const innerX = CENTER + HOUR_MARK_INNER * Math.cos(angle);
+            const innerY = CENTER + HOUR_MARK_INNER * Math.sin(angle);
+            const labelX = CENTER + HOUR_LABEL_RADIUS * Math.cos(angle);
+            const labelY = CENTER + HOUR_LABEL_RADIUS * Math.sin(angle);
 
-        {/* Task arcs */}
-        {timedTasks.map((task, index) => {
-          const taskHour = getClockHour(task.dueTime!);
-          // Each arc spans ~45 min (0.75 hours) centered on the due time
-          const spanHours = 0.75;
-          const startHour = taskHour - spanHours / 2;
-          const endHour = taskHour + spanHours / 2;
-          const startAngle = hourToAngle(startHour);
-          const endAngle = hourToAngle(endHour);
-          const color = ARC_COLORS[index % ARC_COLORS.length];
-
-          const arcPath = describeArc(CENTER, CENTER, ARC_RADIUS, startAngle, endAngle);
-          const isSelected = selectedTaskId === task.id;
-          const isOtherSelected = selectedTaskId !== null && !isSelected;
-
-          return (
-            <Path
-              key={task.id}
-              d={arcPath}
-              stroke={color}
-              strokeWidth={isSelected ? 10 : 6}
-              strokeLinecap="round"
-              fill="none"
-              opacity={isSelected ? 1 : isOtherSelected ? 0.25 : 0.85}
-              onPress={() => {
-                setSelectedTaskId(isSelected ? null : task.id);
-                onTaskPress(task);
-              }}
-            />
-          );
-        })}
-
-        {/* Center dot */}
-        <Circle cx={CENTER} cy={CENTER} r={5} fill="#6E6AF2" />
-
-        {/* Current time hand */}
-        <Line
-          x1={CENTER}
-          y1={CENTER}
-          x2={handEndX}
-          y2={handEndY}
-          stroke="#6E6AF2"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-        />
-
-        {/* AM/PM indicator */}
-        <SvgText
-          x={CENTER}
-          y={CENTER + 30}
-          fill="#6B7280"
-          fontSize={11}
-          fontWeight="500"
-          textAnchor="middle">
-          {isAM ? 'AM' : 'PM'}
-        </SvgText>
-      </Svg>
-
-      {/* Legend: task labels next to their color */}
-      {timedTasks.length > 0 && (
-        <View style={{marginTop: 8, paddingHorizontal: 16, width: '100%'}}>
-          {timedTasks.map((task, index) => {
-            const color = ARC_COLORS[index % ARC_COLORS.length];
             return (
-              <TouchableOpacity
-                key={task.id}
-                onPress={() => {
-                  const isAlreadySelected = selectedTaskId === task.id;
-                  setSelectedTaskId(isAlreadySelected ? null : task.id);
-                  onTaskPress(task);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 6,
-                  opacity: selectedTaskId !== null && selectedTaskId !== task.id ? 0.4 : 1,
-                }}>
-                <View
-                  style={{
-                    width: selectedTaskId === task.id ? 12 : 10,
-                    height: selectedTaskId === task.id ? 12 : 10,
-                    borderRadius: 6,
-                    backgroundColor: color,
-                    marginRight: 10,
-                  }}
+              <React.Fragment key={i}>
+                <Line
+                  x1={innerX}
+                  y1={innerY}
+                  x2={outerX}
+                  y2={outerY}
+                  stroke="#3A3D44"
+                  strokeWidth={i % 3 === 0 ? 2 : 1}
                 />
-                <Text
-                  style={{
-                    color: '#EDEEF0',
-                    fontSize: 14,
-                    flex: 1,
-                    fontWeight: selectedTaskId === task.id ? '600' : '400',
-                  }}
-                  numberOfLines={1}>
-                  {task.text}
-                </Text>
-                <Text style={{color: selectedTaskId === task.id ? color : '#9AA0A6', fontSize: 12}}>
-                  {formatTime(task.dueTime!)}
-                </Text>
-              </TouchableOpacity>
+                <SvgText
+                  x={labelX}
+                  y={labelY + 4}
+                  fill="#4B5563"
+                  fontSize={11}
+                  fontWeight={i % 3 === 0 ? '600' : '400'}
+                  textAnchor="middle">
+                  {hour}
+                </SvgText>
+              </React.Fragment>
             );
           })}
+
+          {/* PM arcs — outer ring */}
+          {renderArcs(pmTasks, ARC_RADIUS_PM)}
+
+          {/* AM arcs — inner ring */}
+          {renderArcs(amTasks, ARC_RADIUS_AM)}
+
+          {/* Center dot */}
+          <Circle cx={CENTER} cy={CENTER} r={4} fill="#6E6AF2" />
+
+          {/* Current time hand */}
+          <Line
+            x1={CENTER}
+            y1={CENTER}
+            x2={handEndX}
+            y2={handEndY}
+            stroke="#6E6AF2"
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
+
+          {/* Current time AM/PM */}
+          <SvgText
+            x={CENTER}
+            y={CENTER + 26}
+            fill="#4B5563"
+            fontSize={10}
+            fontWeight="500"
+            textAnchor="middle">
+            {isAM ? 'AM' : 'PM'}
+          </SvgText>
+        </Svg>
+
+        {/* AM badge — top left corner, inside clock */}
+        {amTasks.length > 0 && (
+          <View style={{
+            position: 'absolute',
+            top: 20,
+            left: 20,
+            backgroundColor: 'rgba(30,33,42,0.9)',
+            borderRadius: 6,
+            paddingHorizontal: 7,
+            paddingVertical: 3,
+            borderWidth: 1,
+            borderColor: '#2A2D34',
+          }}>
+            <Text style={{color: '#6B7280', fontSize: 9, fontWeight: '700', letterSpacing: 1}}>AM</Text>
+          </View>
+        )}
+
+        {/* PM badge — top right corner, inside clock */}
+        {pmTasks.length > 0 && (
+          <View style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            backgroundColor: 'rgba(30,33,42,0.9)',
+            borderRadius: 6,
+            paddingHorizontal: 7,
+            paddingVertical: 3,
+            borderWidth: 1,
+            borderColor: '#2A2D34',
+          }}>
+            <Text style={{color: '#6B7280', fontSize: 9, fontWeight: '700', letterSpacing: 1}}>PM</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Legend grouped by AM / PM */}
+      {timedTasks.length > 0 && (
+        <View style={{marginTop: 4, paddingHorizontal: 16, width: '100%'}}>
+          {amTasks.length > 0 && (
+            <>
+              <Text style={{color: '#374151', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2, marginTop: 4}}>AM</Text>
+              {amTasks.map(task => {
+                const color = taskColors[task.id];
+                const isSelected = selectedTaskId === task.id;
+                return (
+                  <TouchableOpacity
+                    key={task.id}
+                    onPress={() => {
+                      setSelectedTaskId(isSelected ? null : task.id);
+                      onTaskPress(task);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 6,
+                      opacity: selectedTaskId !== null && !isSelected ? 0.4 : 1,
+                    }}>
+                    <View style={{width: isSelected ? 12 : 10, height: isSelected ? 12 : 10, borderRadius: 6, backgroundColor: color, marginRight: 10}} />
+                    <Text style={{color: '#EDEEF0', fontSize: 14, flex: 1, fontWeight: isSelected ? '600' : '400'}} numberOfLines={1}>{task.text}</Text>
+                    <Text style={{color: isSelected ? color : '#9AA0A6', fontSize: 12}}>{formatTime(task.dueTime!)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+          {pmTasks.length > 0 && (
+            <>
+              <Text style={{color: '#374151', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: amTasks.length > 0 ? 6 : 4, marginBottom: 2}}>PM</Text>
+              {pmTasks.map(task => {
+                const color = taskColors[task.id];
+                const isSelected = selectedTaskId === task.id;
+                return (
+                  <TouchableOpacity
+                    key={task.id}
+                    onPress={() => {
+                      setSelectedTaskId(isSelected ? null : task.id);
+                      onTaskPress(task);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 6,
+                      opacity: selectedTaskId !== null && !isSelected ? 0.4 : 1,
+                    }}>
+                    <View style={{width: isSelected ? 12 : 10, height: isSelected ? 12 : 10, borderRadius: 6, backgroundColor: color, marginRight: 10}} />
+                    <Text style={{color: '#EDEEF0', fontSize: 14, flex: 1, fontWeight: isSelected ? '600' : '400'}} numberOfLines={1}>{task.text}</Text>
+                    <Text style={{color: isSelected ? color : '#9AA0A6', fontSize: 12}}>{formatTime(task.dueTime!)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
         </View>
       )}
     </View>
@@ -272,6 +348,7 @@ interface TaskItemProps {
   onSnooze1h: (id: string) => void;
   onSnoozeTomorrow: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (task: Task) => void;
   isCompleted?: boolean;
   onUncomplete?: (id: string) => void;
   color?: string;
@@ -283,6 +360,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onSnooze1h,
   onSnoozeTomorrow,
   onDelete,
+  onEdit,
   isCompleted,
   onUncomplete,
   color,
@@ -364,7 +442,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             </Text>
             {task.dueTime && !isCompleted && (
               <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
-                ⏰ {formatTime(task.dueTime)}
+                🕐 {formatTime(task.dueTime)}{task.durationMinutes ? ` · ${task.durationMinutes < 60 ? `${task.durationMinutes}m` : `${task.durationMinutes / 60}h`}` : ''}{task.notificationId ? ' · 🔔' : ''}{task.recurringTemplateId ? ' · 🔁' : ''}
               </Text>
             )}
           </View>
@@ -393,8 +471,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 borderRadius: 8,
                 alignItems: 'center',
               }}>
-              <Text
-                style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
+              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
                 Later
               </Text>
             </TouchableOpacity>
@@ -410,9 +487,24 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 borderRadius: 8,
                 alignItems: 'center',
               }}>
-              <Text
-                style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
+              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '500'}}>
                 Tomorrow
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setExpanded(false);
+                onEdit(task);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#1A1D24',
+                paddingVertical: 10,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}>
+              <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>
+                Edit
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -427,8 +519,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 borderRadius: 8,
                 alignItems: 'center',
               }}>
-              <Text
-                style={{color: '#EF4444', fontSize: 13, fontWeight: '500'}}>
+              <Text style={{color: '#EF4444', fontSize: 13, fontWeight: '500'}}>
                 Remove
               </Text>
             </TouchableOpacity>
@@ -443,6 +534,16 @@ const TasksScreen: React.FC = () => {
   const [newTaskText, setNewTaskText] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [wantsReminder, setWantsReminder] = useState(false);
+  const [selectedRecurrence, setSelectedRecurrence] = useState<RecurrenceType | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editTime, setEditTime] = useState<Date | null>(null);
+  const [editDuration, setEditDuration] = useState<number | null>(null);
+  const [editWantsReminder, setEditWantsReminder] = useState(false);
+  const [editRecurrence, setEditRecurrence] = useState<RecurrenceType | null>(null);
+  const [showEditTimePicker, setShowEditTimePicker] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastMood, setToastMood] = useState<keyof typeof MOODS | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -456,6 +557,7 @@ const TasksScreen: React.FC = () => {
     uncompleteTask,
     removeTask,
     snoozeTask,
+    updateTask,
     getTodayTasks,
     getLaterTasks,
     getCompletedTodayTasks,
@@ -514,11 +616,14 @@ const TasksScreen: React.FC = () => {
     if (!trimmed) return;
 
     const dueTime = selectedTime ? selectedTime.toISOString() : null;
-    await addTask(trimmed, dueTime);
+    await addTask(trimmed, dueTime, selectedDuration, wantsReminder, selectedRecurrence);
 
     Haptics.light();
     setNewTaskText('');
     setSelectedTime(null);
+    setSelectedDuration(null);
+    setWantsReminder(false);
+    setSelectedRecurrence(null);
     setShowTimePicker(false);
     Keyboard.dismiss();
   };
@@ -558,6 +663,31 @@ const TasksScreen: React.FC = () => {
     ]);
   };
 
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setEditText(task.text);
+    setEditTime(task.dueTime ? new Date(task.dueTime) : null);
+    setEditDuration(task.durationMinutes ?? null);
+    setEditWantsReminder(!!task.notificationId);
+    // Load recurrence from template if this is a spawned instance
+    setEditRecurrence(task.recurrence ?? null);
+    setShowEditTimePicker(!!task.dueTime);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTask || !editText.trim()) return;
+    await updateTask(
+      editingTask.id,
+      editText.trim(),
+      editTime ? editTime.toISOString() : null,
+      editDuration,
+      editWantsReminder,
+      editRecurrence,
+    );
+    Haptics.light();
+    setEditingTask(null);
+  };
+
   const handleTimeChange = (_event: any, date?: Date) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
@@ -580,6 +710,185 @@ const TasksScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}}>
+      {/* Edit Task Modal */}
+      <Modal
+        visible={!!editingTask}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditingTask(null)}>
+        <KeyboardAvoidingView
+          style={{flex: 1, backgroundColor: '#0B0D10'}}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={{flex: 1, padding: 24}}>
+            {/* Header */}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
+              <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>Edit Task</Text>
+              <TouchableOpacity onPress={() => setEditingTask(null)}>
+                <Text style={{color: '#9AA0A6', fontSize: 16}}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Text */}
+            <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', marginBottom: 8, letterSpacing: 0.5}}>TASK</Text>
+            <TextInput
+              value={editText}
+              onChangeText={setEditText}
+              placeholder="What's the task?"
+              placeholderTextColor="#4B5563"
+              multiline
+              style={{
+                backgroundColor: '#141821',
+                borderRadius: 12,
+                padding: 14,
+                color: '#EDEEF0',
+                fontSize: 16,
+                marginBottom: 24,
+                minHeight: 80,
+              }}
+            />
+
+            {/* Schedule toggle */}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
+              <Text style={{color: '#9AA0A6', fontSize: 13, fontWeight: '600', letterSpacing: 0.5}}>SCHEDULE</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (showEditTimePicker) {
+                    setShowEditTimePicker(false);
+                    setEditTime(null);
+                    setEditDuration(null);
+                    setEditWantsReminder(false);
+                  } else {
+                    setShowEditTimePicker(true);
+                  }
+                }}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
+                  borderRadius: 20,
+                  backgroundColor: showEditTimePicker ? 'rgba(110,106,242,0.15)' : '#1A1D24',
+                  borderWidth: 1,
+                  borderColor: showEditTimePicker ? '#6E6AF2' : '#2A2D34',
+                }}>
+                <Text style={{color: showEditTimePicker ? '#6E6AF2' : '#9AA0A6', fontSize: 13}}>
+                  {showEditTimePicker ? 'Clear' : '+ Add time'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showEditTimePicker && (
+              <View style={{backgroundColor: '#141821', borderRadius: 12, padding: 14, marginBottom: 16}}>
+                <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12}}>
+                  <Text style={{color: '#9AA0A6', fontSize: 14}}>Start time</Text>
+                  <DateTimePicker
+                    value={editTime ?? new Date()}
+                    mode="time"
+                    display="compact"
+                    onChange={(_e, date) => date && setEditTime(date)}
+                    themeVariant="dark"
+                  />
+                </View>
+                {/* Duration slider */}
+                <Text style={{color: '#6B7280', fontSize: 12, marginBottom: 4}}>Duration (optional)</Text>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2}}>
+                  <Text style={{color: '#6B7280', fontSize: 11}}>none — 12h</Text>
+                  <Text style={{color: editDuration ? '#EDEEF0' : '#4B5563', fontSize: 14, fontWeight: '600'}}>
+                    {editDuration
+                      ? editDuration < 60 ? `${editDuration}m` : `${editDuration / 60}h`
+                      : 'none'}
+                  </Text>
+                </View>
+                <Slider
+                  style={{width: '100%', height: 36, marginBottom: 4}}
+                  minimumValue={0}
+                  maximumValue={14}
+                  step={1}
+                  value={editDuration ? [null,15,30,60,120,180,240,300,360,420,480,540,600,660,720].indexOf(editDuration) : 0}
+                  onValueChange={idx => {
+                    const steps = [null,15,30,60,120,180,240,300,360,420,480,540,600,660,720];
+                    setEditDuration(steps[idx] as number | null);
+                  }}
+                  minimumTrackTintColor="#6E6AF2"
+                  maximumTrackTintColor="#2A2D34"
+                  thumbTintColor="#6E6AF2"
+                />
+                {/* Reminder toggle */}
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!editWantsReminder) {
+                      const granted = await requestNotificationPermission();
+                      if (!granted) {
+                        Alert.alert('Reminders are off', 'Enable them in Settings.', [{text: 'Got it'}]);
+                        return;
+                      }
+                    }
+                    setEditWantsReminder(!editWantsReminder);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    paddingVertical: 6,
+                  }}>
+                  <View style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    borderWidth: 1.5,
+                    borderColor: editWantsReminder ? '#6E6AF2' : '#3A3D44',
+                    backgroundColor: editWantsReminder ? '#6E6AF2' : 'transparent',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                    {editWantsReminder && <Text style={{color: '#FFF', fontSize: 12, fontWeight: '700'}}>✓</Text>}
+                  </View>
+                  <Text style={{color: editWantsReminder ? '#EDEEF0' : '#9AA0A6', fontSize: 14}}>Notify me at this time</Text>
+                </TouchableOpacity>
+                {/* Recurrence picker */}
+                <View style={{marginTop: 16}}>
+                  <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>REPEAT</Text>
+                  <View style={{flexDirection: 'row', gap: 6}}>
+                    {([null, 'daily', 'weekdays', 'weekends'] as (RecurrenceType | null)[]).map(opt => {
+                      const label = opt === null ? 'None' : opt === 'daily' ? 'Daily' : opt === 'weekdays' ? 'Weekdays' : 'Weekends';
+                      const active = editRecurrence === opt;
+                      return (
+                        <TouchableOpacity
+                          key={String(opt)}
+                          onPress={() => setEditRecurrence(opt)}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 6,
+                            borderRadius: 10,
+                            borderWidth: 1,
+                            borderColor: active ? '#6E6AF2' : '#2A2D34',
+                            backgroundColor: active ? 'rgba(110,106,242,0.15)' : 'transparent',
+                            alignItems: 'center',
+                          }}>
+                          <Text style={{color: active ? '#6E6AF2' : '#9AA0A6', fontSize: 12, fontWeight: active ? '600' : '400'}}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <View style={{flex: 1}} />
+
+            {/* Save button */}
+            <TouchableOpacity
+              onPress={handleSaveEdit}
+              disabled={!editText.trim()}
+              style={{
+                backgroundColor: editText.trim() ? '#6E6AF2' : '#1A1D24',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}>
+              <Text style={{color: editText.trim() ? '#FFF' : '#4B5563', fontSize: 16, fontWeight: '600'}}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       <KeyboardAvoidingView
         style={{flex: 1}}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -605,7 +914,7 @@ const TasksScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
           <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
-            Your day, your pace.
+            Actionable items only.
           </Text>
         </View>
 
@@ -663,6 +972,7 @@ const TasksScreen: React.FC = () => {
                   onSnooze1h={handleSnooze1h}
                   onSnoozeTomorrow={handleSnoozeTomorrow}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </View>
@@ -691,6 +1001,7 @@ const TasksScreen: React.FC = () => {
                   onSnooze1h={handleSnooze1h}
                   onSnoozeTomorrow={handleSnoozeTomorrow}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                   color={taskColorMap[task.id]}
                 />
               ))}
@@ -720,6 +1031,7 @@ const TasksScreen: React.FC = () => {
                   onSnooze1h={handleSnooze1h}
                   onSnoozeTomorrow={handleSnoozeTomorrow}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </View>
@@ -748,6 +1060,7 @@ const TasksScreen: React.FC = () => {
                   onSnooze1h={handleSnooze1h}
                   onSnoozeTomorrow={handleSnoozeTomorrow}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                   isCompleted
                   onUncomplete={uncompleteTask}
                 />
@@ -793,58 +1106,144 @@ const TasksScreen: React.FC = () => {
             paddingTop: 12,
             paddingBottom: Platform.OS === 'ios' ? 24 : 16,
           }}>
-          {/* Time picker row */}
+          {/* Time + duration picker row */}
           {showTimePicker && (
-            <View
-              style={{
+            <View style={{marginBottom: 8}}>
+              {/* Row 1: time picker + close */}
+              <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                marginBottom: 8,
                 justifyContent: 'space-between',
+                marginBottom: 8,
               }}>
-              <Text style={{color: '#9AA0A6', fontSize: 14}}>
-                Remind me at:
-              </Text>
-              <View
-                style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                <DateTimePicker
-                  value={selectedTime ?? new Date()}
-                  mode="time"
-                  display="compact"
-                  onChange={handleTimeChange}
-                  themeVariant="dark"
-                />
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowTimePicker(false);
-                    setSelectedTime(null);
-                  }}>
-                  <Text style={{color: '#EF4444', fontSize: 14}}>✕</Text>
-                </TouchableOpacity>
+                <Text style={{color: '#9AA0A6', fontSize: 14}}>Schedule at:</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                  <DateTimePicker
+                    value={selectedTime ?? new Date()}
+                    mode="time"
+                    display="compact"
+                    onChange={handleTimeChange}
+                    themeVariant="dark"
+                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowTimePicker(false);
+                      setSelectedTime(null);
+                      setSelectedDuration(null);
+                      setWantsReminder(false);
+                    }}>
+                    <Text style={{color: '#EF4444', fontSize: 14}}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+              {/* Row 2: duration slider + reminder toggle */}
+              {selectedTime && (
+                <View style={{marginBottom: 4}}>
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2}}>
+                    <Text style={{color: '#6B7280', fontSize: 12}}>Duration</Text>
+                    <Text style={{color: selectedDuration ? '#EDEEF0' : '#4B5563', fontSize: 13, fontWeight: '600'}}>
+                      {selectedDuration
+                        ? selectedDuration < 60 ? `${selectedDuration}m` : `${selectedDuration / 60}h`
+                        : 'none'}
+                    </Text>
+                  </View>
+                  <Slider
+                    style={{width: '100%', height: 36}}
+                    minimumValue={0}
+                    maximumValue={14}
+                    step={1}
+                    value={selectedDuration ? [null,15,30,60,120,180,240,300,360,420,480,540,600,660,720].indexOf(selectedDuration) : 0}
+                    onValueChange={idx => {
+                      const steps = [null,15,30,60,120,180,240,300,360,420,480,540,600,660,720];
+                      setSelectedDuration(steps[idx] as number | null);
+                    }}
+                    minimumTrackTintColor="#6E6AF2"
+                    maximumTrackTintColor="#2A2D34"
+                    thumbTintColor="#6E6AF2"
+                  />
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                    <Text style={{color: '#4B5563', fontSize: 10}}>none</Text>
+                    <Text style={{color: '#4B5563', fontSize: 10}}>12h</Text>
+                  </View>
+                  {/* Reminder toggle */}
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (!wantsReminder) {
+                        const granted = await requestNotificationPermission();
+                        if (!granted) {
+                          Alert.alert('Reminders are off', 'Enable them in Settings.', [{text: 'Got it'}]);
+                          return;
+                        }
+                      }
+                      setWantsReminder(!wantsReminder);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 5,
+                      alignSelf: 'flex-end',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 20,
+                      marginTop: 4,
+                      backgroundColor: wantsReminder ? 'rgba(110,106,242,0.15)' : '#1A1D24',
+                      borderWidth: 1,
+                      borderColor: wantsReminder ? '#6E6AF2' : '#2A2D34',
+                    }}>
+                    <Text style={{fontSize: 12}}>🔔</Text>
+                    <Text style={{
+                      color: wantsReminder ? '#6E6AF2' : '#9AA0A6',
+                      fontSize: 13,
+                      fontWeight: wantsReminder ? '600' : '400',
+                    }}>Remind</Text>
+                  </TouchableOpacity>
+                  {/* Recurrence picker */}
+                  <View style={{marginTop: 10}}>
+                    <Text style={{color: '#9AA0A6', fontSize: 11, marginBottom: 6, fontWeight: '500', letterSpacing: 0.5}}>REPEAT</Text>
+                    <View style={{flexDirection: 'row', gap: 6}}>
+                      {([null, 'daily', 'weekdays', 'weekends'] as (RecurrenceType | null)[]).map(opt => {
+                        const label = opt === null ? 'None' : opt === 'daily' ? 'Daily' : opt === 'weekdays' ? 'Weekdays' : 'Weekends';
+                        const active = selectedRecurrence === opt;
+                        return (
+                          <TouchableOpacity
+                            key={String(opt)}
+                            onPress={() => setSelectedRecurrence(opt)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 6,
+                              borderRadius: 10,
+                              borderWidth: 1,
+                              borderColor: active ? '#6E6AF2' : '#2A2D34',
+                              backgroundColor: active ? 'rgba(110,106,242,0.15)' : 'transparent',
+                              alignItems: 'center',
+                            }}>
+                            <Text style={{color: active ? '#6E6AF2' : '#9AA0A6', fontSize: 12, fontWeight: active ? '600' : '400'}}>{label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-            {/* Reminder toggle — Pro only */}
+            {/* Clock block button — puts task on clock, no notification */}
             <TouchableOpacity
-              onPress={async () => {
+              onPress={() => {
                 if (!isPro) {
                   navigation.navigate('Paywall');
                   return;
                 }
-                if (!showTimePicker) {
-                  const granted = await requestNotificationPermission();
-                  if (!granted) {
-                    Alert.alert(
-                      'Reminders are off',
-                      'You can enable them anytime in Settings.',
-                      [{text: 'Got it'}],
-                    );
-                  }
+                if (showTimePicker) {
+                  setShowTimePicker(false);
+                  setSelectedTime(null);
+                  setSelectedDuration(null);
+                  setWantsReminder(false);
+                } else {
+                  setShowTimePicker(true);
                 }
-                setShowTimePicker(!showTimePicker);
-                if (showTimePicker) setSelectedTime(null);
               }}
               style={{
                 width: 36,
@@ -854,7 +1253,7 @@ const TasksScreen: React.FC = () => {
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <Text style={{fontSize: 16}}>⏰</Text>
+              <Text style={{fontSize: 16}}>🕐</Text>
               {!isPro && (
                 <View style={{
                   position: 'absolute',

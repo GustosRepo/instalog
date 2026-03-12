@@ -7,144 +7,183 @@
 
 import Foundation
 
-struct WidgetPreset: Codable, Identifiable {
+// MARK: - Widget Config Types
+
+struct WidgetActionConfig: Codable, Identifiable {
     let id: String
+    let type: String          // "thought" | "task" | "idea" | "mood" | "brainDump"
+    let label: String
+    let icon: String          // SF Symbol name
+    let defaultBucketId: String?
+    let saveInstantly: Bool
+    let openAppAfterTap: Bool
+}
+
+struct WidgetConfigState: Codable {
+    let layout: String        // "single" | "multi"
+    let actions: [WidgetActionConfig]
+    let sendToInboxByDefault: Bool
+    let showUnprocessedCount: Bool
+    let showTodayMood: Bool
+}
+
+// MARK: - Task (for widget)
+
+struct WidgetTask: Codable, Identifiable {
+    let id: String
+    let text: String
+    let createdAt: String
+    let dateKey: String
+    let completedAt: String?
+    let isRecurringTemplate: Bool?
+}
+
+// MARK: - Legacy Preset (kept for backward-compat decoding)
+
+struct WidgetPreset: Codable, Identifiable {    let id: String
     let label: String
     let text: String
     let icon: String
     let bucketId: String?
 }
 
+// MARK: - Log Entry
+
 struct LogEntry: Codable {
     let id: String
-    let timestamp: String  // ISO 8601 string to match React Native
+    let timestamp: String  // ISO 8601
     let text: String?
     let bucketId: String?
     let dateKey: String
+    let status: String?        // "unprocessed" | "processed" | "archived"
+    let suggestedType: String? // "thought" | "task" | "idea" | "mood" | "note"
+    let source: String?        // "widget" | "manual"
 }
 
+// MARK: - SharedStore
+
 class SharedStore {
-    
-    // MARK: - Constants
+
     private static let appGroupIdentifier = "group.com.instalog.shared"
-    private static let presetsKey = "@instalog/presets"
-    private static let logsKey = "@instalog/logs"
-    private static let isProKey = "@instalog/isPro"
-    private static let totalLogCountKey = "@instalog/totalLogCount"
-    private static let freeLogLimitKey = "@instalog/freeLogLimit"
-    
-    // MARK: - UserDefaults
+    private static let presetsKey        = "@instalog/presets"
+    private static let logsKey           = "@instalog/logs"
+    private static let tasksKey          = "@instalog/tasks"
+    private static let widgetConfigKey   = "@instalog/widgetConfig"
+    private static let isProKey          = "@instalog/isPro"
+    private static let totalLogCountKey  = "@instalog/totalLogCount"
+    private static let freeLogLimitKey   = "@instalog/freeLogLimit"
+
     private static var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupIdentifier)
     }
-    
-    // MARK: - Paywall Check
-    
-    /// Check if user can create a log
-    /// Logging is unlimited for all users — no gate needed
-    static func canCreateLog() -> Bool {
-        return true
+
+    // MARK: - Paywall
+
+    static func canCreateLog() -> Bool { return true }
+
+    static func isPro() -> Bool {
+        return userDefaults?.bool(forKey: isProKey) ?? false
     }
-    
-    // MARK: - Presets
-    
-    /// Load widget presets from App Group
+
+    // MARK: - Widget Config
+
+    static func loadWidgetConfig() -> WidgetConfigState? {
+        guard let defaults = userDefaults,
+              let json = defaults.string(forKey: widgetConfigKey),
+              let data = json.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(WidgetConfigState.self, from: data)
+    }
+
+    // MARK: - Tasks
+
+    static func loadTodayTasks() -> [WidgetTask] {
+        guard let defaults = userDefaults,
+              let json = defaults.string(forKey: tasksKey),
+              let data = json.data(using: .utf8) else { return [] }
+        let all = (try? JSONDecoder().decode([WidgetTask].self, from: data)) ?? []
+        let todayKey = formatDateKey(Date())
+        return all.filter { task in
+            guard task.completedAt == nil && task.isRecurringTemplate != true else { return false }
+            return task.dateKey == todayKey || task.dateKey < todayKey
+        }
+    }
+
+    static func completeTask(id: String) {
+        guard let defaults = userDefaults,
+              let json = defaults.string(forKey: tasksKey),
+              let data = json.data(using: .utf8),
+              var tasks = try? JSONDecoder().decode([WidgetTask].self, from: data) else { return }
+        let now = ISO8601DateFormatter().string(from: Date())
+        tasks = tasks.map { t in
+            t.id == id ? WidgetTask(id: t.id, text: t.text, createdAt: t.createdAt, dateKey: t.dateKey, completedAt: now, isRecurringTemplate: t.isRecurringTemplate) : t
+        }
+        if let encoded = try? JSONEncoder().encode(tasks),
+           let updated = String(data: encoded, encoding: .utf8) {
+            defaults.set(updated, forKey: tasksKey)
+            defaults.synchronize()
+        }
+    }
+
+    // MARK: - Legacy Presets (backward compat)
     static func loadPresets() -> [WidgetPreset] {
         guard let defaults = userDefaults,
-              let presetsJson = defaults.string(forKey: presetsKey),
-              let data = presetsJson.data(using: .utf8) else {
-            return [] // Return empty if not configured
-        }
-        
-        do {
-            let presets = try JSONDecoder().decode([WidgetPreset].self, from: data)
-            return presets
-        } catch {
-            print("Failed to decode presets: \(error)")
-            return []
-        }
+              let json = defaults.string(forKey: presetsKey),
+              let data = json.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([WidgetPreset].self, from: data)) ?? []
     }
-    
-    /// Default presets if none configured
-    private static func defaultPresets() -> [WidgetPreset] {
-        return [
-            WidgetPreset(id: "default-1", label: "Quick Log", text: "Logged from widget", icon: "plus.circle", bucketId: nil),
-            WidgetPreset(id: "default-2", label: "Note", text: "Quick note", icon: "note.text", bucketId: nil)
-        ]
-    }
-    
+
     // MARK: - Logs
-    
-    /// Save a new log entry
-    static func saveLog(text: String, bucketId: String? = nil) {
-        guard let defaults = userDefaults else {
-            print("Failed to access App Group UserDefaults")
-            return
-        }
-        
-        // Create log entry with ISO 8601 timestamp (matches React Native format)
+
+    static func saveLog(text: String, suggestedType: String? = nil, bucketId: String? = nil) {
+        guard let defaults = userDefaults else { return }
+
         let now = Date()
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let timestamp = isoFormatter.string(from: now)
-        let dateKey = Self.formatDateKey(now)
+        let dateKey = formatDateKey(now)
         let logId = "\(Int(now.timeIntervalSince1970 * 1000))-\(Int.random(in: 0...999))"
-        
+
         let newLog = LogEntry(
             id: logId,
             timestamp: timestamp,
             text: text.isEmpty ? nil : text,
             bucketId: bucketId,
-            dateKey: dateKey
+            dateKey: dateKey,
+            status: "unprocessed",
+            suggestedType: suggestedType,
+            source: "widget"
         )
-        
-        // Load existing logs
+
         var logs = loadLogs()
-        logs.append(newLog) // Add to end (React Native expects chronological order)
-        
-        // Keep only last 1000 logs
-        if logs.count > 1000 {
-            logs = Array(logs.suffix(1000))
-        }
-        
-        // Save back to UserDefaults
+        logs.append(newLog)
+        if logs.count > 1000 { logs = Array(logs.suffix(1000)) }
+
         if let encoded = try? JSONEncoder().encode(logs),
            let jsonString = String(data: encoded, encoding: .utf8) {
             defaults.set(jsonString, forKey: logsKey)
             defaults.synchronize()
         }
     }
-    
-    /// Load all logs
+
     static func loadLogs() -> [LogEntry] {
         guard let defaults = userDefaults,
-              let logsJson = defaults.string(forKey: logsKey),
-              let data = logsJson.data(using: .utf8) else {
-            return []
-        }
-        
-        do {
-            let logs = try JSONDecoder().decode([LogEntry].self, from: data)
-            return logs
-        } catch {
-            print("Failed to decode logs: \(error)")
-            return []
-        }
+              let json = defaults.string(forKey: logsKey),
+              let data = json.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([LogEntry].self, from: data)) ?? []
     }
-    
-    /// Get count of logs for a specific date
-    static func getLogCount(for dateKey: String) -> Int {
-        return loadLogs().filter { $0.dateKey == dateKey }.count
-    }
-    
-    /// Get today's log count
+
     static func getTodayLogCount() -> Int {
         let today = formatDateKey(Date())
-        return getLogCount(for: today)
+        return loadLogs().filter { $0.dateKey == today }.count
     }
-    
+
+    static func getUnprocessedCount() -> Int {
+        return loadLogs().filter { $0.status == "unprocessed" }.count
+    }
+
     // MARK: - Helpers
-    
+
     private static func formatDateKey(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"

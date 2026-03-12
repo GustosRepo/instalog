@@ -30,11 +30,7 @@ const LogItem: React.FC<{item: LogEntry}> = ({item}) => (
       ) : (
         <Text style={styles.logTextEmpty}>Logged</Text>
       )}
-      {item.bucketId && (
-        <View style={styles.bucketBadge}>
-          <Text style={styles.bucketText}>Sorted</Text>
-        </View>
-      )}
+
     </View>
   </View>
 );
@@ -165,19 +161,7 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
   },
-  bucketBadge: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  bucketText: {
-    fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
+
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',

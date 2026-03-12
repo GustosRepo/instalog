@@ -1,601 +1,277 @@
 /**
- * Wrap Up Screen - Cleanup Flow
+ * Wrap Up Screen — End-of-Day Closure
  *
- * Purpose: Quickly organize or clear the day's logs
- * Card-based swipe interface with finite, satisfying UX
- * Includes bucket management
+ * Purpose: Calm summary of what was captured and processed.
+ * Honest, gentle, no pressure.
  */
 
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
-  Animated,
-  PanResponder,
-  Dimensions,
-  Vibration,
   TouchableOpacity,
-  Modal,
-  TextInput,
   ScrollView,
-  Keyboard,
-  ImageBackground,
+  RefreshControl,
   Image,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import {useLogStore} from '../stores/useLogStore';
-import {useSubscriptionStore, FREE_BUCKET_LIMIT} from '../stores/useSubscriptionStore';
-import {useHintsStore} from '../stores/useHintsStore';
-import {LogEntry, formatTime} from '../models/types';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
+import {useLogStore} from '../stores/useLogStore';
+import {useTaskStore} from '../stores/useTaskStore';
+import {useMoodStore} from '../stores/useMoodStore';
 import {MOODS} from '../utils/moods';
+import {MOOD_META} from '../utils/mood';
 import {maybeRequestReview} from '../utils/storeReview';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+// ─── Stat card ────────────────────────────────────────────────────────────────
 
-interface LogCardProps {
-  item: LogEntry;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
-}
+const StatCard: React.FC<{
+  value: number;
+  label: string;
+  accent?: string;
+  dim?: boolean;
+}> = ({value, label, accent = '#6E6AF2', dim = false}) => (
+  <View style={{
+    flex: 1,
+    backgroundColor: '#141821',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    opacity: dim ? 0.5 : 1,
+    borderWidth: 1,
+    borderColor: dim ? 'transparent' : `${accent}33`,
+  }}>
+    <Text style={{color: accent, fontSize: 32, fontWeight: '700'}}>{value}</Text>
+    <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 4, textAlign: 'center'}}>{label}</Text>
+  </View>
+);
 
-const LogCard: React.FC<LogCardProps> = ({item, onSwipeLeft, onSwipeRight}) => {
-  const pan = useRef(new Animated.ValueXY()).current;
-  const scale = useRef(new Animated.Value(0)).current;
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-
-  // Entrance animation
-  React.useEffect(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      tension: 50,
-      friction: 7,
-      useNativeDriver: false,
-    }).start();
-  }, []);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 10;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        pan.setValue({x: gestureState.dx, y: 0});
-        
-        // Update swipe direction for visual feedback
-        if (gestureState.dx > 50) {
-          setSwipeDirection('right');
-        } else if (gestureState.dx < -50) {
-          setSwipeDirection('left');
-        } else {
-          setSwipeDirection(null);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          // Swiped right - assign to bucket
-          Vibration.vibrate(50);
-          Animated.timing(pan, {
-            toValue: {x: SCREEN_WIDTH, y: 0},
-            duration: 200,
-            useNativeDriver: false,
-          }).start(() => {
-            onSwipeRight();
-            pan.setValue({x: 0, y: 0});
-            setSwipeDirection(null);
-          });
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          // Swiped left - archive
-          Vibration.vibrate(50);
-          Animated.timing(pan, {
-            toValue: {x: -SCREEN_WIDTH, y: 0},
-            duration: 200,
-            useNativeDriver: false,
-          }).start(() => {
-            onSwipeLeft();
-            pan.setValue({x: 0, y: 0});
-            setSwipeDirection(null);
-          });
-        } else {
-          // Return to center
-          setSwipeDirection(null);
-          Animated.spring(pan, {
-            toValue: {x: 0, y: 0},
-            useNativeDriver: false,
-            tension: 80,
-            friction: 7,
-          }).start();
-        }
-      },
-    }),
-  ).current;
-
-  const cardStyle = {
-    transform: [{translateX: pan.x}, {scale}],
-  };
-
-  const leftOpacity = pan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH, -SWIPE_THRESHOLD, 0],
-    outputRange: [1, 0.8, 0],
-    extrapolate: 'clamp',
-  });
-
-  const rightOpacity = pan.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD, SCREEN_WIDTH],
-    outputRange: [0, 0.8, 1],
-    extrapolate: 'clamp',
-  });
-
-  return (
-    <View style={{position: 'relative'}}>
-      {/* Swipe action indicators */}
-      <View style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 32}}>
-        <Animated.View style={{opacity: leftOpacity}}>
-          <Text style={{color: '#9AA0A6', fontSize: 16, fontWeight: '500'}}>Archive</Text>
-        </Animated.View>
-        <Animated.View style={{opacity: rightOpacity}}>
-          <Text style={{color: '#6E6AF2', fontSize: 16, fontWeight: '500'}}>Sort</Text>
-        </Animated.View>
-      </View>
-
-      {/* Swipeable card */}
-      <Animated.View
-        style={[cardStyle, {backgroundColor: '#141821', borderRadius: 16, padding: 24, marginHorizontal: 24}]}
-        {...panResponder.panHandlers}>
-        <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 8}}>
-          {formatTime(item.timestamp)}
-        </Text>
-        <Text style={{color: '#EDEEF0', fontSize: 18, lineHeight: 28}}>
-          {item.text || 'Logged'}
-        </Text>
-      </Animated.View>
-    </View>
-  );
-};
-
-const BucketManager: React.FC<{
-  visible: boolean;
-  onClose: () => void;
-}> = ({visible, onClose}) => {
-  const navigation = useNavigation();
-  const buckets = useLogStore(state => state.buckets);
-  const addBucket = useLogStore(state => state.addBucket);
-  const removeBucket = useLogStore(state => state.removeBucket);
-  const isPro = useSubscriptionStore(state => state.isPro);
-  const [newBucketName, setNewBucketName] = useState('');
-
-  const handleAddBucket = () => {
-    const trimmed = newBucketName.trim();
-    if (!trimmed) return;
-    
-    // Check bucket limit for free users
-    if (!isPro && buckets.length >= FREE_BUCKET_LIMIT) {
-      onClose();
-      (navigation as any).navigate('Paywall');
-      return;
-    }
-    
-    addBucket(trimmed);
-    setNewBucketName('');
-    Vibration.vibrate(50);
-    Keyboard.dismiss();
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-        <View style={{backgroundColor: '#141821', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32}}>
-          {/* Header */}
-          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(154, 160, 166, 0.1)'}}>
-            <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700'}}>
-              Manage Buckets
-            </Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={{color: '#6E6AF2', fontSize: 18, fontWeight: '600'}}>Done</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Add new bucket */}
-          <View style={{paddingHorizontal: 24, paddingVertical: 16}}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <TextInput
-                value={newBucketName}
-                onChangeText={setNewBucketName}
-                placeholder="New bucket name..."
-                placeholderTextColor="#9AA0A6"
-                style={{
-                  flex: 1,
-                  backgroundColor: '#0B0D10',
-                  color: '#EDEEF0',
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                  marginRight: 12,
-                }}
-                onSubmitEditing={handleAddBucket}
-                returnKeyType="done"
-                maxLength={30}
-              />
-              <TouchableOpacity
-                onPress={handleAddBucket}
-                disabled={!newBucketName.trim()}
-                style={{
-                  backgroundColor: newBucketName.trim() ? '#6E6AF2' : '#0B0D10',
-                  paddingHorizontal: 20,
-                  paddingVertical: 12,
-                  borderRadius: 12,
-                }}>
-                <Text style={{color: newBucketName.trim() ? '#EDEEF0' : '#9AA0A6', fontWeight: '600'}}>
-                  Add
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Bucket list */}
-          <ScrollView style={{maxHeight: 320, paddingHorizontal: 24}} keyboardShouldPersistTaps="handled">
-            {buckets.length === 0 ? (
-              <View style={{paddingVertical: 32}}>
-                <Text style={{color: '#9AA0A6', textAlign: 'center'}}>
-                  No buckets yet. Add one above.
-                </Text>
-              </View>
-            ) : (
-              buckets.map(bucket => (
-                <View
-                  key={bucket.id}
-                  style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0B0D10', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, marginBottom: 8}}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
-                    <View style={{width: 12, height: 12, borderRadius: 6, backgroundColor: '#6E6AF2', marginRight: 12}} />
-                    <Text style={{color: '#EDEEF0', fontSize: 16}}>
-                      {bucket.name}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      removeBucket(bucket.id);
-                      Vibration.vibrate(50);
-                    }}
-                    style={{paddingHorizontal: 12, paddingVertical: 4}}>
-                    <Text style={{color: '#EF4444', fontWeight: '500'}}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-};
-
-// Bucket Selector Modal Component
-interface BucketSelectorProps {
-  visible: boolean;
-  onClose: () => void;
-  onSelectBucket: (bucketId: string) => void;
-}
-
-const BucketSelector: React.FC<BucketSelectorProps> = ({visible, onClose, onSelectBucket}) => {
-  const buckets = useLogStore(state => state.buckets);
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}>
-      <TouchableOpacity 
-        style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)'}}
-        activeOpacity={1}
-        onPress={onClose}>
-        <View 
-          style={{backgroundColor: '#141821', borderRadius: 24, marginHorizontal: 32, maxWidth: 400, width: '100%'}}
-          onStartShouldSetResponder={() => true}>
-          {/* Header */}
-          <View style={{paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16}}>
-            <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700', marginBottom: 8}}>
-              Sort into bucket
-            </Text>
-            <Text style={{color: '#9AA0A6', fontSize: 14}}>
-              Choose a bucket for this log
-            </Text>
-          </View>
-
-          {/* Bucket list */}
-          <ScrollView style={{maxHeight: 400}}>
-            {buckets.length === 0 ? (
-              <View style={{paddingVertical: 32, paddingHorizontal: 24}}>
-                <Text style={{color: '#9AA0A6', textAlign: 'center', marginBottom: 16}}>
-                  No buckets yet. Create one first.
-                </Text>
-              </View>
-            ) : (
-              buckets.map(bucket => (
-                <TouchableOpacity
-                  key={bucket.id}
-                  onPress={() => {
-                    onSelectBucket(bucket.id);
-                    Vibration.vibrate(50);
-                  }}
-                  style={{flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: 'rgba(154, 160, 166, 0.1)'}}
-                  activeOpacity={0.7}>
-                  <View style={{width: 12, height: 12, borderRadius: 6, backgroundColor: '#6E6AF2', marginRight: 16}} />
-                  <Text style={{color: '#EDEEF0', fontSize: 18, flex: 1}}>
-                    {bucket.name}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-
-          {/* Cancel button */}
-          <TouchableOpacity
-            onPress={onClose}
-            style={{borderTopWidth: 1, borderTopColor: 'rgba(154, 160, 166, 0.1)', paddingVertical: 16}}
-            activeOpacity={0.7}>
-            <Text style={{color: '#9AA0A6', textAlign: 'center', fontSize: 16, fontWeight: '600'}}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-};
+// ─── WrapUpScreen ─────────────────────────────────────────────────────────────
 
 const WrapUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const logs = useLogStore(state => state.logs);
-  const getUnsortedLogs = useLogStore(state => state.getUnsortedLogs);
-  const assignBucket = useLogStore(state => state.assignBucket);
-  const buckets = useLogStore(state => state.buckets);
-  const {hasSeenWrapUpOverlay, markWrapUpOverlaySeen} = useHintsStore();
+  const getTodayCaptureStats = useLogStore(state => state.getTodayCaptureStats);
+  const getUnprocessedItems = useLogStore(state => state.getUnprocessedItems);
+  const refreshLogs = useLogStore(state => state.refreshLogs);
+  const getCompletedTodayTasks = useTaskStore(state => state.getCompletedTodayTasks);
+  const getTodayMood = useMoodStore(state => state.getTodayMood);
+  const moodEntries = useMoodStore(state => state.entries);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const unsortedLogs = getUnsortedLogs();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showBucketManager, setShowBucketManager] = useState(false);
-  const [showBucketSelector, setShowBucketSelector] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [showOverlayHint, setShowOverlayHint] = useState(false);
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const stats = getTodayCaptureStats();
+  const unprocessed = getUnprocessedItems();
+  const completedTasks = getCompletedTodayTasks();
+  const todayMood = getTodayMood();
 
-  // Show overlay hint on first visit
-  useEffect(() => {
-    if (!hasSeenWrapUpOverlay && unsortedLogs.length > 0) {
-      setTimeout(() => {
-        setShowOverlayHint(true);
-        Animated.timing(overlayOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      }, 800);
+  const allClear = unprocessed.length === 0 && stats.totalCaptured > 0;
+  const nothingYet = stats.totalCaptured === 0;
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const {storage} = await import('../storage/mmkv');
+      await storage.reloadFromAppGroup();
+      refreshLogs();
+      await new Promise<void>(r => setTimeout(r, 300));
+    } catch {}
+    setRefreshing(false);
+  }, [refreshLogs]);
+
+  // Prompt for App Store review when all is clear
+  React.useEffect(() => {
+    if (allClear && stats.totalProcessed >= 3) {
+      setTimeout(() => maybeRequestReview(), 800);
     }
-  }, [hasSeenWrapUpOverlay, unsortedLogs.length]);
+  }, [allClear, stats.totalProcessed]);
 
-  const dismissOverlayHint = () => {
-    Animated.timing(overlayOpacity, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setShowOverlayHint(false));
-    markWrapUpOverlaySeen();
-  };
-
-  // Sort by oldest first for wrap-up flow
-  const sortedLogs = [...unsortedLogs].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-  );
-
-  const currentLog = sortedLogs[currentIndex];
-
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    Animated.sequence([
-      Animated.timing(toastOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.delay(1500),
-      Animated.timing(toastOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setToastMessage(null));
-  };
-
-  const handleSwipeLeft = () => {
-    // Archive - assign to special "archived" bucket
-    if (currentLog) {
-      assignBucket(currentLog.id, '__archived__');
-      showToast('Archived');
-      // The log now has a bucketId, so it will be filtered out of unsorted logs
+  const getCopy = () => {
+    if (nothingYet) {
+      return {title: 'Nothing yet', sub: 'Start capturing in Brain Dump\nand come back to close out the day.'};
     }
-  };
-
-  const handleSwipeRight = () => {
-    // Show bucket selector
-    setShowBucketSelector(true);
-  };
-
-  const handleBucketSelected = (bucketId: string) => {
-    if (currentLog) {
-      assignBucket(currentLog.id, bucketId);
-      setShowBucketSelector(false);
-      const bucket = buckets.find(b => b.id === bucketId);
-      showToast(`Sorted into ${bucket?.name || 'bucket'}`);
-      // Don't advance - the next log automatically takes this position
+    if (allClear) {
+      return {
+        title: 'All clear',
+        sub: `You captured ${stats.totalCaptured} thing${stats.totalCaptured !== 1 ? 's' : ''} today.\nEvery one processed. Nice.`,
+      };
     }
+    return {
+      title: `${stats.totalUnprocessed} left`,
+      sub: `You captured ${stats.totalCaptured} item${stats.totalCaptured !== 1 ? 's' : ''} today.\n${stats.totalProcessed} processed, ${stats.totalUnprocessed} still waiting.`,
+    };
   };
 
-  const advanceToNext = () => {
-    if (currentIndex < sortedLogs.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const renderAllClear = () => {
-    // Good moment to ask for a review — user just finished wrapping up
-    setTimeout(() => maybeRequestReview(), 800);
-    return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32}}>
-      <Image
-        source={MOODS.heart}
-        style={{width: 100, height: 100, marginBottom: 24}}
-        resizeMode="contain"
-      />
-      <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700', marginBottom: 8}}>
-        All clear
-      </Text>
-      <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center', lineHeight: 24}}>
-        Nice work! All logs have been processed.
-      </Text>
-    </View>
-    );
-  };
+  const {title, sub} = getCopy();
+  const mascot = allClear ? MOODS.heart : nothingYet ? MOODS.chill : MOODS.confused;
 
   return (
-    <View style={{flex: 1, backgroundColor: '#0B0D10'}}>
-      <ImageBackground
-        source={require('../../assets/logonobg.png')}
-        style={{flex: 1}}
-        imageStyle={{opacity: sortedLogs.length === 0 ? 0 : 0.03, resizeMode: 'center'}}
-        resizeMode="center">
+    <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}} edges={['top']}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{flexGrow: 1, paddingHorizontal: 20, paddingBottom: 48}}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6E6AF2" />
+        }>
+
         {/* Header */}
-        <View style={{paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32}}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-          <View>
-            <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700'}}>Wrap Up</Text>
-          </View>
-          <TouchableOpacity onPress={() => (navigation as any).navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-            <Text style={{fontSize: 20, opacity: 0.7}}>⚙️</Text>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingBottom: 24}}>
+          <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '700'}}>Wrap Up</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Text style={{fontSize: 18, opacity: 0.6}}>⚙️</Text>
           </TouchableOpacity>
         </View>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-          <View>
-            {sortedLogs.length > 0 && currentIndex < sortedLogs.length && (
-              <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 4}}>
-                {sortedLogs.length - currentIndex}{' '}
-                {sortedLogs.length - currentIndex === 1 ? 'log' : 'logs'} left
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            onPress={() => setShowBucketManager(true)}
-            style={{backgroundColor: '#141821', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12}}>
-            <Text style={{color: '#6E6AF2', fontWeight: '600'}}>Buckets</Text>
-          </TouchableOpacity>
+
+        {/* Mascot + headline */}
+        <View style={{alignItems: 'center', marginBottom: 32}}>
+          <Image source={mascot} style={{width: 110, height: 110, marginBottom: 16}} resizeMode="contain" />
+          <Text style={{color: '#EDEEF0', fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 8}}>
+            {title}
+          </Text>
+          <Text style={{color: '#9AA0A6', fontSize: 15, textAlign: 'center', lineHeight: 22}}>
+            {sub}
+          </Text>
         </View>
-      </View>
 
-      {/* Bucket Manager Modal */}
-      <BucketManager
-        visible={showBucketManager}
-        onClose={() => setShowBucketManager(false)}
-      />
-
-      {/* Bucket Selector Modal */}
-      <BucketSelector
-        visible={showBucketSelector}
-        onClose={() => setShowBucketSelector(false)}
-        onSelectBucket={handleBucketSelected}
-      />
-
-      {/* Content */}
-      <View style={{flex: 1, justifyContent: 'center'}}>
-        {sortedLogs.length === 0 || currentIndex >= sortedLogs.length ? (
-          renderAllClear()
-        ) : (
+        {/* Stats grid */}
+        {!nothingYet && (
           <>
-            <LogCard
-              item={currentLog}
-              onSwipeLeft={handleSwipeLeft}
-              onSwipeRight={handleSwipeRight}
-            />
-            
-            {/* Helper text */}
-            <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', marginTop: 32, paddingHorizontal: 24}}>
-              ← Archive • Sort into bucket →
-            </Text>
-            {buckets.length === 0 && (
-              <TouchableOpacity 
-                onPress={() => setShowBucketManager(true)}
-                style={{marginTop: 12, alignSelf: 'center'}}>
-                <Text style={{color: '#6E6AF2', fontSize: 13, fontWeight: '500'}}>
-                  Create your first bucket
-                </Text>
-              </TouchableOpacity>
-            )}
+            {/* Today's brain mood */}
+            <View style={{
+              backgroundColor: '#141821',
+              borderRadius: 14,
+              padding: 16,
+              marginBottom: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: todayMood ? `${MOOD_META[todayMood].color}33` : '#1F2330',
+            }}>
+              <Text style={{color: '#4B5563', fontSize: 13, flex: 1}}>Brain mood today</Text>
+              {todayMood ? (
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                  <Image source={MOOD_META[todayMood].mascot} style={{width: 28, height: 28}} resizeMode="contain" />
+                  <Text style={{color: MOOD_META[todayMood].color, fontSize: 14, fontWeight: '600'}}>
+                    {MOOD_META[todayMood].label}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={{color: '#4B5563', fontSize: 13}}>Not set</Text>
+              )}
+            </View>
+
+            <View style={{marginBottom: 28}}>
+              <View style={{flexDirection: 'row', gap: 10, marginBottom: 10}}>
+                <StatCard value={stats.totalCaptured} label="Captured" accent="#6E6AF2" />
+                <StatCard value={stats.totalProcessed} label="Processed" accent="#6EE0F2" />
+              </View>
+              <View style={{flexDirection: 'row', gap: 10}}>
+                <StatCard
+                  value={stats.totalUnprocessed}
+                  label="Unprocessed"
+                  accent="#F29B6E"
+                  dim={stats.totalUnprocessed === 0}
+                />
+                <StatCard value={completedTasks.length} label="Tasks done" accent="#6EF2A8" dim={completedTasks.length === 0} />
+              </View>
+            </View>
           </>
         )}
-      </View>
 
-      {/* Toast notification */}
-      {toastMessage && (
-        <Animated.View
-          style={{
-            position: 'absolute',
-            bottom: 120,
-            left: 24,
-            right: 24,
+        {/* Type breakdown */}
+        {stats.totalProcessed > 0 && (
+          <View style={{
             backgroundColor: '#141821',
-            borderRadius: 12,
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-            opacity: toastOpacity,
-            alignItems: 'center',
+            borderRadius: 14,
+            padding: 16,
+            marginBottom: 28,
           }}>
-          <Text style={{color: '#EDEEF0', fontSize: 16, fontWeight: '600'}}>
-            {toastMessage}
-          </Text>
-        </Animated.View>
-      )}
+            <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginBottom: 12}}>
+              PROCESSED AS
+            </Text>
+            <View style={{flexDirection: 'row', gap: 8}}>
+              <View style={{flex: 1, alignItems: 'center'}}>
+                <Text style={{fontSize: 22, marginBottom: 4}}>📋</Text>
+                <Text style={{color: '#6E6AF2', fontSize: 18, fontWeight: '700'}}>{stats.totalTasks}</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>Tasks</Text>
+              </View>
+              <View style={{width: 1, backgroundColor: '#1F2330'}} />
+              <View style={{flex: 1, alignItems: 'center'}}>
+                <Text style={{fontSize: 22, marginBottom: 4}}>📝</Text>
+                <Text style={{color: '#6EE0F2', fontSize: 18, fontWeight: '700'}}>{stats.totalNotes}</Text>
+                <Text style={{color: '#9AA0A6', fontSize: 11, marginTop: 2}}>Notes / Ideas</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
-      {/* Overlay hint */}
-      {showOverlayHint && (
-        <Animated.View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            opacity: overlayOpacity,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 40,
-          }}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={dismissOverlayHint}
-            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '600', marginBottom: 12, textAlign: 'center'}}>
-              Swipe logs into buckets
-            </Text>
-            <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center', lineHeight: 24}}>
-              Swipe left to archive{'\n'}Swipe right to organize
-            </Text>
-            <Text style={{color: '#6E6AF2', fontSize: 14, marginTop: 32}}>
-              Tap anywhere to continue
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-      </ImageBackground>
-    </View>
+        {/* CTAs */}
+        <View style={{gap: 10}}>
+          {unprocessed.length > 0 && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Inbox')}
+              style={{
+                backgroundColor: '#6E6AF2',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+              activeOpacity={0.8}>
+              <Text style={{color: '#FFF', fontSize: 16, fontWeight: '600'}}>
+                Process {unprocessed.length} remaining →
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {nothingYet && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Instalog')}
+              style={{
+                backgroundColor: '#6E6AF2',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+              activeOpacity={0.8}>
+              <Text style={{color: '#FFF', fontSize: 16, fontWeight: '600'}}>
+                Start Brain Dump →
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {allClear && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Review')}
+              style={{
+                backgroundColor: '#141821',
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#2A2D34',
+              }}
+              activeOpacity={0.8}>
+              <Text style={{color: '#9AA0A6', fontSize: 16, fontWeight: '500'}}>
+                View Review →
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {!nothingYet && !allClear && (
+            <TouchableOpacity
+              onPress={() => {/* leave for tomorrow - just close / do nothing */}}
+              style={{
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: 'center',
+              }}
+              activeOpacity={0.7}>
+              <Text style={{color: '#4B5563', fontSize: 14}}>
+                Leave the rest for tomorrow
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

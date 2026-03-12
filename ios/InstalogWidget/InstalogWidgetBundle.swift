@@ -12,5 +12,6 @@ import SwiftUI
 struct InstalogWidgetBundle: WidgetBundle {
     var body: some Widget {
         InstalogWidget()
+        InstalogTaskWidget()
     }
 }

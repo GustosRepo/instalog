@@ -4,16 +4,20 @@
  */
 
 import React, {useEffect, useRef} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, createNavigationContainerRef, useNavigation} from '@react-navigation/native';
+
+export const navigationRef = createNavigationContainerRef();
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Text, View, ActivityIndicator, Animated} from 'react-native';
+import {Text, View, ActivityIndicator, Animated, TouchableOpacity} from 'react-native';
 
 import {InstalogScreen, InboxScreen, WrapUpScreen, ReviewScreen, SettingsScreen, TasksScreen} from '../screens';
+import LibraryScreen from '../screens/LibraryScreen';
 import WidgetConfigScreen from '../screens/WidgetConfigScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import {useOnboardingStore} from '../stores/useOnboardingStore';
+import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -54,6 +58,50 @@ const TabIcon: React.FC<{label: string; focused: boolean}> = ({label, focused}) 
   );
 };
 
+// Pro gate — shows upgrade prompt for free users, renders real screen for pro
+const ProGateScreen: React.FC<{
+  screen: React.ReactElement;
+  emoji: string;
+  title: string;
+  description: string;
+}> = ({screen, emoji, title, description}) => {
+  const isPro = useSubscriptionStore(state => state.isPro);
+  const navigation = useNavigation();
+
+  if (isPro) return screen;
+
+  return (
+    <View style={{flex: 1, backgroundColor: '#0B0D10', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40}}>
+      <Text style={{fontSize: 48, marginBottom: 16}}>{emoji}</Text>
+      <Text style={{color: '#EDEEF0', fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center'}}>
+        {title}
+      </Text>
+      <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24}}>
+        {description}
+      </Text>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Paywall' as never)}
+        style={{
+          backgroundColor: '#6E6AF2',
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+        }}>
+        <Text style={{color: '#FFFFFF', fontSize: 16, fontWeight: '600'}}>Upgrade to Pro</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const ProReviewScreen = () => (
+  <ProGateScreen
+    screen={<ReviewScreen />}
+    emoji="◐"
+    title="Review is a Pro feature"
+    description="Unlock heatmaps, mood insights, search, and daily reflection across all your logs."
+  />
+);
+
 const TabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
@@ -89,17 +137,24 @@ const TabNavigator: React.FC = () => {
           }}
         />
         <Tab.Screen
-          name="Wrap Up"
-          component={WrapUpScreen}
-          options={{
-            tabBarIcon: ({focused}) => <TabIcon label="✓" focused={focused} />,
-          }}
-        />
-        <Tab.Screen
           name="Tasks"
           component={TasksScreen}
           options={{
             tabBarIcon: ({focused}) => <TabIcon label="📋" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="Library"
+          component={LibraryScreen}
+          options={{
+            tabBarIcon: ({focused}) => <TabIcon label="📚" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="Wrap Up"
+          component={WrapUpScreen}
+          options={{
+            tabBarIcon: ({focused}) => <TabIcon label="✓" focused={focused} />,
           }}
         />
         <Tab.Screen
@@ -136,6 +191,7 @@ const AppNavigator: React.FC = () => {
   
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
         dark: true,
         colors: {

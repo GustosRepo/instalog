@@ -9,6 +9,29 @@
 
 @interface RCT_EXTERN_MODULE(WidgetPresetsModule, NSObject)
 
+// Expose setWidgetConfig method to JavaScript
+RCT_EXTERN_METHOD(setWidgetConfig:(NSString *)configJson
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+// Expose loadWidgetConfig method to JavaScript
+RCT_EXTERN_METHOD(loadWidgetConfig:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+// Expose saveTasks method to JavaScript
+RCT_EXTERN_METHOD(saveTasks:(NSString *)tasksJson
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+// Expose loadTasks method to JavaScript
+RCT_EXTERN_METHOD(loadTasks:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+// Expose completeWidgetTask method to JavaScript
+RCT_EXTERN_METHOD(completeWidgetTask:(NSString *)taskId
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
 // Expose setWidgetPresets method to JavaScript
 RCT_EXTERN_METHOD(setWidgetPresets:(NSString *)presetsJson
                   resolver:(RCTPromiseResolveBlock)resolver

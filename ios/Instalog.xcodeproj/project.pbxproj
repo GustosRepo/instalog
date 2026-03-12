@@ -11,6 +11,8 @@
 		1BDF10AEA3A4476181CB34BC /* libPods-Instalog.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8BC5E2F779308672E21D28E6 /* libPods-Instalog.a */; };
 		2BA5EECAF3F00BCB9400CB3D /* StoreKitModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE8D35FB667BBA31C5ABAD7 /* StoreKitModule.swift */; };
 		40D79F9752C4347CEE163B87 /* WidgetPresetsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 6E75FAF219C9D0FC33DA5471 /* WidgetPresetsModule.m */; };
+		AA11CC2233DD4455EE667788 /* NLClassifierModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11CC2233DD4455EE667700 /* NLClassifierModule.swift */; };
+		BB22DD3344EE5566FF778899 /* NLClassifierModule.m in Sources */ = {isa = PBXBuildFile; fileRef = BB22DD3344EE5566FF778800 /* NLClassifierModule.m */; };
 		58502F0943B419172977B04F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		610B8CBA51E249BAD62DEC11 /* WidgetPresetsModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B7B9CD882B0B3C8F082B282 /* WidgetPresetsModule.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
@@ -60,6 +62,8 @@
 		8BC5E2F779308672E21D28E6 /* libPods-Instalog.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Instalog.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E7F2C9BE8EB0F37503F9335 /* StoreKitModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = StoreKitModule.m; path = Instalog/StoreKitModule.m; sourceTree = "<group>"; };
 		9FE8D35FB667BBA31C5ABAD7 /* StoreKitModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StoreKitModule.swift; path = Instalog/StoreKitModule.swift; sourceTree = "<group>"; };
+		AA11CC2233DD4455EE667700 /* NLClassifierModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NLClassifierModule.swift; path = Instalog/NLClassifierModule.swift; sourceTree = "<group>"; };
+		BB22DD3344EE5566FF778800 /* NLClassifierModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = NLClassifierModule.m; path = Instalog/NLClassifierModule.m; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F318723A2F2DADA4007CAEEE /* InstalogWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = InstalogWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F318723B2F2DADA4007CAEEE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -129,6 +133,8 @@
 				6E75FAF219C9D0FC33DA5471 /* WidgetPresetsModule.m */,
 				9FE8D35FB667BBA31C5ABAD7 /* StoreKitModule.swift */,
 				9E7F2C9BE8EB0F37503F9335 /* StoreKitModule.m */,
+				AA11CC2233DD4455EE667700 /* NLClassifierModule.swift */,
+				BB22DD3344EE5566FF778800 /* NLClassifierModule.m */,
 			);
 			name = Instalog;
 			sourceTree = "<group>";
@@ -417,6 +423,8 @@
 				9AAC14DA67C8479D35E83873 /* ExpoModulesProvider.swift in Sources */,
 				2BA5EECAF3F00BCB9400CB3D /* StoreKitModule.swift in Sources */,
 				7D3A4F5F4090C2FA798180A4 /* StoreKitModule.m in Sources */,
+				AA11CC2233DD4455EE667788 /* NLClassifierModule.swift in Sources */,
+				BB22DD3344EE5566FF778899 /* NLClassifierModule.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

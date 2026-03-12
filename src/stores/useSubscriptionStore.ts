@@ -48,6 +48,7 @@ interface SubscriptionState {
 const SUB_KEYS = {
   TIER: '@instalog/subscription_tier',
   PAYWALL_SEEN: '@instalog/paywall_seen',
+  DEV_OVERRIDE: '@instalog/dev_pro_override',
 } as const;
 
 const {WidgetPresetsModule} = NativeModules;
@@ -82,8 +83,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     
     let isPro = savedTier === 'pro';
     
+    // Skip StoreKit check if dev override is active
+    const devOverride = __DEV__ && storage.getString(SUB_KEYS.DEV_OVERRIDE) === 'true';
+    
     // Check with StoreKit for actual subscription status (iOS only)
-    if (Platform.OS === 'ios' && StoreKitModule) {
+    if (!devOverride && Platform.OS === 'ios' && StoreKitModule) {
       try {
         const status = await StoreKitModule.checkSubscriptionStatus();
         isPro = status.isPro;
@@ -159,6 +163,10 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   setPro: (isPro: boolean) => {
     const tier = isPro ? 'pro' : 'free';
     storage.setString(SUB_KEYS.TIER, tier);
+    // Mark dev override so refreshSubscription skips StoreKit while testing
+    if (__DEV__) {
+      storage.setString(SUB_KEYS.DEV_OVERRIDE, 'true');
+    }
     
     const state = get();
     set({

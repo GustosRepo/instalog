@@ -23,9 +23,11 @@ import {useNavigation} from '@react-navigation/native';
 import {useLogStore} from '../stores/useLogStore';
 import {useTaskStore} from '../stores/useTaskStore';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
+import {useMoodStore} from '../stores/useMoodStore';
 import {LogEntry, Task, formatTime} from '../models/types';
 import {storage} from '../storage/mmkv';
 import {MOODS} from '../utils/moods';
+import {MOOD_META, MOOD_ORDER, getMoodStats, getMoodHistory} from '../utils/mood';
 
 // Helper: Group logs by YYYY-MM-DD
 const groupLogsByDay = (logs: LogEntry[]): Record<string, LogEntry[]> => {
@@ -244,95 +246,6 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByD
   );
 };
 
-// Buckets Component
-const BucketsSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
-  const buckets = useLogStore(state => state.buckets);
-  const [expandedBucket, setExpandedBucket] = useState<string | null>(null);
-
-  // Count logs per bucket (last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const bucketCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    logs.forEach(log => {
-      if (log.bucketId && new Date(log.timestamp) >= thirtyDaysAgo) {
-        counts[log.bucketId] = (counts[log.bucketId] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [logs]);
-
-  const maxCount = Math.max(...Object.values(bucketCounts), 1);
-
-  const bucketsWithCounts = buckets
-    .map(bucket => ({
-      ...bucket,
-      count: bucketCounts[bucket.id] || 0,
-    }))
-    .filter(bucket => bucket.count > 0)
-    .sort((a, b) => b.count - a.count);
-
-  if (bucketsWithCounts.length === 0) {
-    return (
-      <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
-        <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 12}}>
-          Buckets
-        </Text>
-        <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', paddingVertical: 24}}>
-          No bucketed logs yet. Sort some in Wrap Up.
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
-      <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>
-        Buckets
-      </Text>
-      <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 16}}>
-        Last 30 days
-      </Text>
-
-      {bucketsWithCounts.map(bucket => {
-        const widthPercentage = (bucket.count / maxCount) * 100;
-        const isExpanded = expandedBucket === bucket.id;
-
-        return (
-          <TouchableOpacity
-            key={bucket.id}
-            onPress={() => setExpandedBucket(isExpanded ? null : bucket.id)}
-            style={{marginBottom: 16}}>
-            <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
-              <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: '#6E6AF2', marginRight: 12}} />
-              <Text style={{color: '#EDEEF0', fontSize: 16, flex: 1}}>
-                {bucket.name}
-              </Text>
-              {isExpanded && (
-                <Text style={{color: '#9AA0A6', fontSize: 14}}>
-                  {bucket.count}
-                </Text>
-              )}
-            </View>
-            {/* Presence bar */}
-            <View style={{height: 8, backgroundColor: '#0B0D10', borderRadius: 4, overflow: 'hidden'}}>
-              <View
-                style={{
-                  width: `${widthPercentage}%`,
-                  height: '100%',
-                  backgroundColor: '#6E6AF2',
-                  borderRadius: 4,
-                }}
-              />
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
-
 // Search Component
 const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -411,6 +324,109 @@ const SearchSection: React.FC<{logs: LogEntry[]}> = ({logs}) => {
   );
 };
 
+// Mood Insights Component
+const MoodInsights: React.FC = () => {
+  const entries = useMoodStore(state => state.entries);
+  const stats7 = useMemo(() => getMoodStats(entries, 7), [entries]);
+  const stats30 = useMemo(() => getMoodStats(entries, 30), [entries]);
+  const history = useMemo(() => getMoodHistory(entries, 7), [entries]);
+  const [view, setView] = useState<'7d' | '30d'>('7d');
+
+  const stats = view === '7d' ? stats7 : stats30;
+  const total = stats.reduce((sum, s) => sum + s.count, 0);
+  const max = Math.max(...stats.map(s => s.count), 1);
+
+  if (entries.length === 0) {
+    return (
+      <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+        <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 8}}>
+          Brain Mood
+        </Text>
+        <Text style={{color: '#9AA0A6', fontSize: 14, textAlign: 'center', paddingVertical: 20}}>
+          Set your mood in Brain Dump{'\n'}and it will appear here.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
+      {/* Header row */}
+      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16}}>
+        <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600'}}>Brain Mood</Text>
+        <View style={{flexDirection: 'row', gap: 4}}>
+          {(['7d', '30d'] as const).map(v => (
+            <TouchableOpacity
+              key={v}
+              onPress={() => setView(v)}
+              style={{
+                paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+                backgroundColor: view === v ? '#6E6AF222' : 'transparent',
+                borderWidth: 1, borderColor: view === v ? '#6E6AF2' : '#1F2330',
+              }}>
+              <Text style={{color: view === v ? '#6E6AF2' : '#4B5563', fontSize: 12, fontWeight: '600'}}>
+                {v === '7d' ? '7 days' : '30 days'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Mood bars */}
+      {total === 0 ? (
+        <Text style={{color: '#4B5563', fontSize: 13, textAlign: 'center', paddingVertical: 8}}>
+          No moods logged in this period.
+        </Text>
+      ) : (
+        stats.map(s => (
+          <View key={s.mood} style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10}}>
+            <Image source={s.mascot} style={{width: 24, height: 24}} resizeMode="contain" />
+            <Text style={{color: '#9AA0A6', fontSize: 12, width: 72}}>{s.label}</Text>
+            <View style={{flex: 1, height: 8, backgroundColor: '#0B0D10', borderRadius: 4, overflow: 'hidden'}}>
+              <View style={{
+                width: `${(s.count / max) * 100}%`,
+                height: '100%',
+                backgroundColor: s.color,
+                borderRadius: 4,
+              }} />
+            </View>
+            <Text style={{color: s.count > 0 ? s.color : '#4B5563', fontSize: 13, fontWeight: '600', width: 16, textAlign: 'right'}}>
+              {s.count}
+            </Text>
+          </View>
+        ))
+      )}
+
+      {/* Recent history row */}
+      {history.length > 0 && (
+        <>
+          <View style={{height: 1, backgroundColor: '#1F2330', marginVertical: 14}} />
+          <Text style={{color: '#4B5563', fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginBottom: 10}}>
+            RECENT
+          </Text>
+          <View style={{flexDirection: 'row', gap: 6}}>
+            {history.map(entry => (
+              <View
+                key={entry.id}
+                style={{
+                  flex: 1, alignItems: 'center', gap: 4,
+                  backgroundColor: `${MOOD_META[entry.mood].color}14`,
+                  borderRadius: 10, paddingVertical: 8,
+                  borderWidth: 1, borderColor: `${MOOD_META[entry.mood].color}33`,
+                }}>
+                <Image source={MOOD_META[entry.mood].mascot} style={{width: 28, height: 28}} resizeMode="contain" />
+                <Text style={{color: '#4B5563', fontSize: 9}}>
+                  {new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
+};
+
 // Pro Upsell Banner
 const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature, onUpgrade}) => (
   <TouchableOpacity
@@ -436,7 +452,9 @@ const ProUpsell: React.FC<{feature: string; onUpgrade: () => void}> = ({feature,
 
 // Main Review Screen
 const ReviewScreen: React.FC = () => {
-  const allLogs = useLogStore(state => state.logs);
+  const logs = useLogStore(state => state.logs); // subscribe to trigger re-renders
+  const getProcessedItems = useLogStore(state => state.getProcessedItems);
+  const allLogs = useMemo(() => getProcessedItems(), [logs]); // only processed items
   const allTasks = useTaskStore(state => state.tasks);
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const refreshTasks = useTaskStore(state => state.refreshTasks);
@@ -490,7 +508,7 @@ const ReviewScreen: React.FC = () => {
             resizeMode="contain"
           />
           <Text style={{color: '#9AA0A6', fontSize: 16, textAlign: 'center'}}>
-            Nothing here yet. Your logs and completed tasks will show up here.
+            Nothing here yet. Processed items from Inbox will appear here.
           </Text>
         </View>
       </View>
@@ -534,7 +552,7 @@ const ReviewScreen: React.FC = () => {
         ) : (
           <ProUpsell feature="📊 Activity Heatmap" onUpgrade={() => navigation.navigate('Paywall')} />
         )}
-        <BucketsSection logs={allLogs} />
+        <MoodInsights />
         {completedTasks.length > 0 && (
           <View style={{backgroundColor: '#141821', borderRadius: 16, padding: 20, marginBottom: 20}}>
             <Text style={{color: '#EDEEF0', fontSize: 18, fontWeight: '600', marginBottom: 16}}>

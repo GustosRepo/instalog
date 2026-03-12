@@ -175,11 +175,11 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         {/* Benefits */}
         <View style={{marginBottom: 24}}>
           {[
-            '🕐 Clock view — see your day at a glance',
-            '🔔 Task reminders — gentle nudges when you need them',
-            '📊 Review insights — heatmap, search & reflection',
+            '📝 Write directly — compose thoughts, ideas & notes in-feed',
+            '🕐 Clock view — visualize and time-block your day',
+            '📊 Review — heatmap, search & mood insights',
+            '🎛️ Multi-action widget — up to 4 quick capture buttons',
             '📤 Data export — your data, your control',
-            '🪣 Unlimited buckets & widget presets',
           ].map((benefit, index) => (
             <View key={index} style={{flexDirection: 'row', marginBottom: 12, paddingHorizontal: 8}}>
               <Text style={{color: '#EDEEF0', fontSize: 15, flex: 1, lineHeight: 22}}>

@@ -2,107 +2,138 @@
 //  QuickLogIntent.swift
 //  InstalogWidget
 //
-//  iOS 17+ AppIntent for instant logging from widget buttons
+//  AppIntents for quick capture from widget buttons.
+//  Capture types save a log entry; navigation types deep-link into the app.
 //
 
 import AppIntents
 import WidgetKit
 
+// MARK: - Quick Capture Intent
+
 @available(iOS 17.0, *)
 struct QuickLogIntent: AppIntent {
-    
-    static var title: LocalizedStringResource = "Quick Log"
-    static var description = IntentDescription("Log an entry instantly from your widget")
-    
-    // MARK: - Parameters
-    
+
+    static var title: LocalizedStringResource = "Quick Capture"
+    static var description = IntentDescription("Capture a thought, task, or idea from your widget")
+
     @Parameter(title: "Log Text")
-    var text: String
-    
-    @Parameter(title: "Preset ID")
-    var presetId: String?
-    
+    var text: String?
+
+    @Parameter(title: "Action Type")
+    var actionType: String?
+
     @Parameter(title: "Bucket ID")
     var bucketId: String?
-    
-    // MARK: - Perform
-    
+
     func perform() async throws -> some IntentResult {
-        
-        // Check paywall first
-        guard SharedStore.canCreateLog() else {
-            // User has hit the free limit - don't log
-            // The widget tap will just not create a log
-            return .result()
-        }
-        
-        // 1. Save log entry to App Group
-        SharedStore.saveLog(text: text, bucketId: bucketId)
-        
-        // 2. Reload all widget timelines to show updated count
+        guard SharedStore.canCreateLog() else { return .result() }
+
+        let type = actionType ?? "thought"
+
+        // brainDump and mood are navigation types — handled by Link() in the widget view
+        guard type != "brainDump" && type != "mood" else { return .result() }
+
+        SharedStore.saveLog(
+            text: text ?? "",
+            suggestedType: type,
+            bucketId: bucketId
+        )
+
         WidgetCenter.shared.reloadAllTimelines()
-        
-        // 3. Provide haptic feedback (if possible from widget context)
-        // Note: Haptics from widgets are limited, but the action will feel instant
-        
-        // 4. Return success
         return .result()
     }
 }
 
-// MARK: - Widget Configuration
+// MARK: - Widget Action Entity (new)
 
 @available(iOS 17.0, *)
-struct QuickLogButton: AppIntent {
-    
-    static var title: LocalizedStringResource = "Quick Log Button"
-    
-    @Parameter(title: "Preset")
-    var preset: WidgetPresetEntity
-    
-    func perform() async throws -> some IntentResult {
-        // Delegate to QuickLogIntent with all preset data
-        // If text is empty, use the label as the log text
-        let intent = QuickLogIntent()
-        intent.text = preset.text.isEmpty ? preset.label : preset.text
-        intent.presetId = preset.id
-        intent.bucketId = preset.bucketId
-        return try await intent.perform()
+struct WidgetActionEntity: AppEntity {
+
+    let id: String
+    let label: String
+    let icon: String
+    let actionType: String
+    let bucketId: String?
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Widget Action"
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(label)")
+    }
+
+    static var defaultQuery = WidgetActionQuery()
+}
+
+@available(iOS 17.0, *)
+struct WidgetActionQuery: EntityQuery {
+
+    func entities(for identifiers: [String]) async throws -> [WidgetActionEntity] {
+        guard let config = SharedStore.loadWidgetConfig() else { return [] }
+        return config.actions
+            .filter { identifiers.contains($0.id) }
+            .map { WidgetActionEntity(id: $0.id, label: $0.label, icon: $0.icon, actionType: $0.type, bucketId: $0.defaultBucketId) }
+    }
+
+    func suggestedEntities() async throws -> [WidgetActionEntity] {
+        guard let config = SharedStore.loadWidgetConfig() else { return [] }
+        return config.actions.map {
+            WidgetActionEntity(id: $0.id, label: $0.label, icon: $0.icon, actionType: $0.type, bucketId: $0.defaultBucketId)
+        }
     }
 }
 
-// MARK: - App Entity for Presets
+// MARK: - Legacy Widget Preset Entity (kept for backward compat)
 
 @available(iOS 17.0, *)
 struct WidgetPresetEntity: AppEntity {
-    
+
     let id: String
     let label: String
     let text: String
     let icon: String
     let bucketId: String?
-    
+
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Widget Preset"
-    
+
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(label)")
     }
-    
+
     static var defaultQuery = WidgetPresetQuery()
 }
 
 @available(iOS 17.0, *)
 struct WidgetPresetQuery: EntityQuery {
-    
+
     func entities(for identifiers: [WidgetPresetEntity.ID]) async throws -> [WidgetPresetEntity] {
         let presets = SharedStore.loadPresets()
         return presets
             .filter { identifiers.contains($0.id) }
             .map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon, bucketId: $0.bucketId) }
     }
-    
+
     func suggestedEntities() async throws -> [WidgetPresetEntity] {
-        let presets = SharedStore.loadPresets()
-        return presets.map { WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon, bucketId: $0.bucketId) }
+        return SharedStore.loadPresets().map {
+            WidgetPresetEntity(id: $0.id, label: $0.label, text: $0.text, icon: $0.icon, bucketId: $0.bucketId)
+        }
+    }
+}
+
+// MARK: - Complete Task Intent
+
+@available(iOS 17.0, *)
+struct CompleteTaskIntent: AppIntent {
+
+    static var title: LocalizedStringResource = "Complete Task"
+    static var description = IntentDescription("Mark a task as complete from the widget")
+
+    @Parameter(title: "Task ID")
+    var taskId: String
+
+    func perform() async throws -> some IntentResult {
+        SharedStore.completeTask(id: taskId)
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
     }
 }
