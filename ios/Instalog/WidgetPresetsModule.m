@@ -57,4 +57,9 @@ RCT_EXTERN_METHOD(syncSubscriptionStatus:(BOOL)isPro
                   resolver:(RCTPromiseResolveBlock)resolver
                   rejecter:(RCTPromiseRejectBlock)rejecter)
 
+// Expose saveLanguage method to JavaScript
+RCT_EXTERN_METHOD(saveLanguage:(NSString *)language
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
 @end

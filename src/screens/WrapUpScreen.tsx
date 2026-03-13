@@ -152,7 +152,7 @@ const WrapUpScreen: React.FC = () => {
                 <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
                   <Image source={MOOD_META[todayMood].mascot} style={{width: 28, height: 28}} resizeMode="contain" />
                   <Text style={{color: MOOD_META[todayMood].color, fontSize: 14, fontWeight: '600'}}>
-                    {MOOD_META[todayMood].label}
+                    {t('moods.' + todayMood)}
                   </Text>
                 </View>
               ) : (

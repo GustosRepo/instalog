@@ -84,6 +84,15 @@ export default {
     editSaveButton: 'Save',
   },
 
+  // ─── Moods ───────────────────────────────────────────────────────────────
+  moods: {
+    calm: 'Calm',
+    neutral: 'Neutral',
+    tired: 'Tired',
+    overwhelmed: 'Overwhelmed',
+    motivated: 'Motivated',
+  },
+
   // ─── LibraryScreen ────────────────────────────────────────────────────────
   library: {
     tabThoughts: '💭 Thoughts',
@@ -309,16 +318,19 @@ export default {
 
   // ─── Onboarding ───────────────────────────────────────────────────────────
   onboarding: {
+    languageTitle: 'Choose your language',
+    languageSubtitle: 'You can change this anytime in Settings',
+    continueButton: 'Continue',
     skipButton: 'Skip',
     nextButton: 'Next',
     getStartedButton: 'Get Started',
-    slide1Title: 'Log in 1 tap',
-    slide1Subtitle: 'Capture accomplishments instantly.\nNo typing required.',
-    slide2Title: 'Sort later',
-    slide2Subtitle: 'Organize when you have time.\nBuckets are always optional.',
+    slide1Title: 'Capture in a tap',
+    slide1Subtitle: 'Brain dump thoughts, tasks, and ideas instantly.\nNo organizing needed.',
+    slide2Title: 'Inbox sorts it out',
+    slide2Subtitle: 'Every capture gets auto-categorized.\nConfirm or change with a swipe.',
     slide3Title: 'Plan your day',
-    slide3Subtitle: 'Add tasks and see them on a clock.\nYour pace, your plan.',
-    slide4Title: 'See your momentum',
-    slide4Subtitle: 'Reflect on what you got done.\nCalm, no pressure.',
+    slide3Subtitle: 'Build your task list and visualize\nyour schedule on a clock.',
+    slide4Title: 'Wrap up & reflect',
+    slide4Subtitle: 'Close out the day in Wrap Up.\nDig into patterns and mood in Review.',
   },
 } as const;

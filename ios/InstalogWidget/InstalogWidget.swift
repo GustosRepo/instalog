@@ -8,6 +8,51 @@
 import WidgetKit
 import SwiftUI
 
+// MARK: - Widget Localization
+
+struct WidgetStrings {
+    let lang: String
+
+    init() {
+        lang = SharedStore.loadLanguage()
+    }
+
+    var quickLog: String          { loc(en: "Quick Log",          es: "Registro Rápido",    th: "บันทึกด่วน") }
+    var brainDump: String         { loc(en: "Brain Dump",         es: "Volcado Mental",     th: "ระบายความคิด") }
+    var newBadge: String          { loc(en: "new",                es: "nuevo",              th: "ใหม่") }
+    var todayBadge: String        { loc(en: "today",              es: "hoy",                th: "วันนี้") }
+    var unprocessed: String       { loc(en: "unprocessed",        es: "sin procesar",       th: "ยังไม่จัดการ") }
+    var nothingCapturedYet: String{ loc(en: "Nothing captured yet",es: "Nada capturado aún",th: "ยังไม่ได้บันทึก") }
+    var capturedToday: String     { loc(en: "captured today",     es: "capturado hoy",      th: "บันทึกวันนี้") }
+    var instalog: String          { "Instalog" }
+    var tasksWidget: String       { loc(en: "Tasks Widget",       es: "Widget de Tareas",   th: "วิดเจ็ตงาน") }
+    var upgradeToPro: String      { loc(en: "Upgrade to Pro",     es: "Mejora a Pro",       th: "อัปเกรดเป็น Pro") }
+    var tasks: String             { loc(en: "Tasks",              es: "Tareas",             th: "งาน") }
+    var left: String              { loc(en: "left",               es: "restantes",          th: "เหลือ") }
+    var allClear: String          { loc(en: "All clear!",         es: "¡Todo listo!",       th: "เสร็จหมดแล้ว!") }
+    var addTask: String           { loc(en: "Add task",           es: "Agregar tarea",      th: "เพิ่มงาน") }
+
+    // Action type labels
+    func labelForType(_ type: String, fallback: String) -> String {
+        switch type {
+        case "thought":   return loc(en: "Thought",   es: "Pensamiento", th: "ความคิด")
+        case "task":      return loc(en: "Task",      es: "Tarea",       th: "งาน")
+        case "idea":      return loc(en: "Idea",      es: "Idea",        th: "ไอเดีย")
+        case "mood":      return loc(en: "Mood",      es: "Estado",      th: "อารมณ์")
+        case "brainDump": return loc(en: "Brain Dump",es: "Volcado",     th: "ระบาย")
+        default:          return fallback
+        }
+    }
+
+    private func loc(en: String, es: String, th: String) -> String {
+        switch lang {
+        case "es": return es
+        case "th": return th
+        default:   return en
+        }
+    }
+}
+
 // MARK: - Timeline Provider
 
 struct Provider: TimelineProvider {
@@ -60,6 +105,7 @@ struct SimpleEntry: TimelineEntry {
 struct InstalogWidgetEntryView : View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
+    let s = WidgetStrings()
     
     // Minimal dark theme - single background
     let backgroundColor = Color(red: 18/255, green: 18/255, blue: 20/255)
@@ -141,7 +187,7 @@ struct InstalogWidgetEntryView : View {
     private func actionButton(for action: WidgetActionConfig) -> some View {
         let color = actionColor(action.type)
         Link(destination: deepLinkURL(for: action)) {
-            actionButtonContent(label: action.label, icon: action.icon, color: color)
+            actionButtonContent(label: s.labelForType(action.type, fallback: action.label), icon: action.icon, color: color)
         }
     }
 
@@ -157,7 +203,7 @@ struct InstalogWidgetEntryView : View {
             HStack {
                 Spacer()
                 if showCount && entry.unprocessedCount > 0 {
-                    Text("\(entry.unprocessedCount) new")
+                    Text("\(entry.unprocessedCount) \(s.newBadge)")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(accentColor)
                         .padding(.horizontal, 6)
@@ -165,7 +211,7 @@ struct InstalogWidgetEntryView : View {
                         .background(accentColor.opacity(0.15))
                         .cornerRadius(5)
                 } else if showCount {
-                    Text("\(entry.todayCount) today")
+                    Text("\(entry.todayCount) \(s.todayBadge)")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(secondaryTextColor)
                 }
@@ -177,7 +223,7 @@ struct InstalogWidgetEntryView : View {
                 actionButton(for: action)
             } else {
                 Link(destination: URL(string: "instalog://capture")!) {
-                    actionButtonContent(label: "Quick Log", icon: "square.and.pencil", color: accentColor)
+                    actionButtonContent(label: s.quickLog, icon: "square.and.pencil", color: accentColor)
                 }
             }
 
@@ -216,7 +262,7 @@ struct InstalogWidgetEntryView : View {
                 HStack {
                     Spacer()
                     if showCount && entry.unprocessedCount > 0 {
-                        Text("\(entry.unprocessedCount) unprocessed")
+                        Text("\(entry.unprocessedCount) \(s.unprocessed)")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(accentColor)
                             .padding(.horizontal, 6)
@@ -224,7 +270,7 @@ struct InstalogWidgetEntryView : View {
                             .background(accentColor.opacity(0.15))
                             .cornerRadius(5)
                     } else if showCount {
-                        Text("\(entry.todayCount) today")
+                        Text("\(entry.todayCount) \(s.todayBadge)")
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(secondaryTextColor)
                     }
@@ -237,7 +283,7 @@ struct InstalogWidgetEntryView : View {
                     Spacer()
                     if actions.isEmpty {
                         Link(destination: URL(string: "instalog://log")!) {
-                            actionButtonContent(label: "Brain Dump", icon: "square.and.pencil", color: accentColor)
+                            actionButtonContent(label: s.brainDump, icon: "square.and.pencil", color: accentColor)
                         }
                     } else if !isFourAction {
                         HStack(spacing: 24) {
@@ -271,7 +317,7 @@ struct InstalogWidgetEntryView : View {
     private func compactActionButton(for action: WidgetActionConfig) -> some View {
         let color = actionColor(action.type)
         Link(destination: deepLinkURL(for: action)) {
-            compactButtonContent(label: action.label, icon: action.icon, color: color)
+            compactButtonContent(label: s.labelForType(action.type, fallback: action.label), icon: action.icon, color: color)
         }
     }
 
@@ -328,14 +374,14 @@ struct InstalogWidgetEntryView : View {
             }
             
             if entry.todayCount == 0 {
-                Text("Nothing captured yet")
+                Text(s.nothingCapturedYet)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             } else if entry.todayCount == 1 {
-                Text("1 captured today")
+                Text("1 \(s.capturedToday)")
                     .font(.system(size: 14, weight: .medium))
             } else {
-                Text("\(entry.todayCount) captured today")
+                Text("\(entry.todayCount) \(s.capturedToday)")
                     .font(.system(size: 14, weight: .medium))
             }
         }
@@ -345,11 +391,11 @@ struct InstalogWidgetEntryView : View {
     @available(iOS 16.0, *)
     private var lockScreenInline: some View {
         if entry.todayCount == 0 {
-            Text("Instalog: Nothing yet")
+            Text("\(s.instalog): \(s.nothingCapturedYet)")
         } else if entry.todayCount == 1 {
-            Text("Instalog: 1 captured")
+            Text("\(s.instalog): 1 \(s.capturedToday)")
         } else {
-            Text("Instalog: \(entry.todayCount) captured")
+            Text("\(s.instalog): \(entry.todayCount) \(s.capturedToday)")
         }
     }
 }
@@ -431,6 +477,7 @@ struct TaskProvider: TimelineProvider {
 
 struct InstalogTaskWidgetView: View {
     var entry: TaskProvider.Entry
+    let s = WidgetStrings()
 
     let textColor = Color.white
     let secondaryTextColor = Color.white.opacity(0.5)
@@ -444,10 +491,10 @@ struct InstalogTaskWidgetView: View {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundColor(Color(red: 130/255, green: 120/255, blue: 255/255))
-                    Text("Tasks Widget")
+                    Text(s.tasksWidget)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(textColor)
-                    Text("Upgrade to Pro")
+                    Text(s.upgradeToPro)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(Color(red: 130/255, green: 120/255, blue: 255/255))
                 }
@@ -460,12 +507,12 @@ struct InstalogTaskWidgetView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(accentColor)
-                Text("Tasks")
+                Text(s.tasks)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(textColor)
                 Spacer()
                 if !entry.tasks.isEmpty {
-                    Text("\(entry.tasks.count) left")
+                    Text("\(entry.tasks.count) \(s.left)")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(secondaryTextColor)
                 }
@@ -480,7 +527,7 @@ struct InstalogTaskWidgetView: View {
                         Image(systemName: "checkmark.circle")
                             .font(.system(size: 24, weight: .light))
                             .foregroundColor(secondaryTextColor)
-                        Text("All clear!")
+                        Text(s.allClear)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(secondaryTextColor)
                     }
@@ -503,7 +550,7 @@ struct InstalogTaskWidgetView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                             .font(.system(size: 9, weight: .semibold))
-                        Text("Add task")
+                        Text(s.addTask)
                             .font(.system(size: 9, weight: .semibold))
                     }
                     .foregroundColor(secondaryTextColor)

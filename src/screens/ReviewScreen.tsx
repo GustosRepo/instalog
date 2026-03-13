@@ -165,7 +165,7 @@ const DayDetailModal: React.FC<DayDetailProps> = ({visible, onClose, dateKey, lo
 
 // Activity Heatmap Component
 const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByDay: Record<string, Task[]>}> = ({logsByDay, tasksByDay}) => {
-  const {t} = useTranslation();
+  const {t, i18n} = useTranslation();
   const [selectedDay, setSelectedDay] = useState<{dateKey: string; logs: LogEntry[]; tasks: Task[]} | null>(null);
 
   const now = new Date();
@@ -173,7 +173,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByD
   const currentMonth = now.getMonth();
 
   const monthGrid = buildMonthGrid(currentYear, currentMonth);
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthLabel = new Date(currentYear, currentMonth, 1).toLocaleString(i18n.language, {month: 'long', year: 'numeric'});
 
   const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -183,7 +183,7 @@ const ActivityHeatmap: React.FC<{logsByDay: Record<string, LogEntry[]>; tasksByD
         {t('review.activitySectionTitle')}
       </Text>
       <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 12}}>
-        {monthNames[currentMonth]} {currentYear}
+        {monthLabel}
       </Text>
 
       {/* Weekday headers */}

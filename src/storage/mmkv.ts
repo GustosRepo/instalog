@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   TASKS: '@instalog/tasks',
   HINTS: 'hints',
   MOOD_ENTRIES: '@instalog/moodEntries',
+  LANGUAGE: '@instalog/language',
 } as const;
 
 // Check if we can use App Group storage (iOS with native module)

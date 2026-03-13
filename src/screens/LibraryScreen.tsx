@@ -7,6 +7,7 @@ import React from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs';
 import TypedFeedScreen from './TypedFeedScreen';
+import {useTranslation} from 'react-i18next';
 
 const TopTab = createMaterialTopTabNavigator();
 
@@ -15,6 +16,7 @@ const IdeasTab = () => <TypedFeedScreen types={['idea']} title="Ideas" />;
 const NotesTab = () => <TypedFeedScreen types={['note']} title="Notes" />;
 
 const LibraryScreen: React.FC = () => {
+  const {t} = useTranslation();
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}} edges={['top']}>
       <TopTab.Navigator
@@ -41,9 +43,9 @@ const LibraryScreen: React.FC = () => {
           swipeEnabled: true,
           lazy: true,
         }}>
-        <TopTab.Screen name="Thoughts" component={ThoughtsTab} options={{tabBarLabel: '💭 Thoughts'}} />
-        <TopTab.Screen name="Ideas" component={IdeasTab} options={{tabBarLabel: '💡 Ideas'}} />
-        <TopTab.Screen name="Notes" component={NotesTab} options={{tabBarLabel: '📝 Notes'}} />
+        <TopTab.Screen name="Thoughts" component={ThoughtsTab} options={{tabBarLabel: t('library.tabThoughts')}} />
+        <TopTab.Screen name="Ideas" component={IdeasTab} options={{tabBarLabel: t('library.tabIdeas')}} />
+        <TopTab.Screen name="Notes" component={NotesTab} options={{tabBarLabel: t('library.tabNotes')}} />
       </TopTab.Navigator>
     </SafeAreaView>
   );

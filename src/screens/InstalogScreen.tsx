@@ -70,7 +70,7 @@ const MoodPicker: React.FC = () => {
                 {t('instalog.moodSectionLabel')}
               </Text>
               <Text style={{color: MOOD_META[todayMood].color, fontSize: 14, fontWeight: '600', marginTop: 1}}>
-                {MOOD_META[todayMood].label}
+                {t('moods.' + todayMood)}
               </Text>
             </View>
           </View>
@@ -110,7 +110,7 @@ const MoodPicker: React.FC = () => {
                 }}>
                 <Image source={MOOD_META[m].mascot} style={{width: 36, height: 36}} resizeMode="contain" />
                 <Text style={{color: '#6B7280', fontSize: 9, fontWeight: '500'}}>
-                  {MOOD_META[m].label}
+                  {t('moods.' + m)}
                 </Text>
               </TouchableOpacity>
             ))}

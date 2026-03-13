@@ -81,6 +81,14 @@ export default {
     editSaveButton: 'Guardar',
   },
 
+  moods: {
+    calm: 'Calmado',
+    neutral: 'Neutral',
+    tired: 'Cansado',
+    overwhelmed: 'Saturado',
+    motivated: 'Motivado',
+  },
+
   library: {
     tabThoughts: '💭 Pensamientos',
     tabIdeas: '💡 Ideas',
@@ -297,16 +305,19 @@ export default {
   },
 
   onboarding: {
+    languageTitle: 'Elige tu idioma',
+    languageSubtitle: 'Puedes cambiarlo en cualquier momento en Ajustes',
+    continueButton: 'Continuar',
     skipButton: 'Omitir',
     nextButton: 'Siguiente',
     getStartedButton: 'Empezar',
-    slide1Title: 'Registra en 1 toque',
-    slide1Subtitle: 'Captura logros al instante.\nSin necesidad de escribir.',
-    slide2Title: 'Organiza después',
-    slide2Subtitle: 'Ordena cuando tengas tiempo.\nLas categorías son siempre opcionales.',
+    slide1Title: 'Captura en un toque',
+    slide1Subtitle: 'Vuelca pensamientos, tareas e ideas al instante.\nSin organizar por ahora.',
+    slide2Title: 'La bandeja lo organiza',
+    slide2Subtitle: 'Cada captura se categoriza automáticamente.\nConfirma o cambia con un deslizamiento.',
     slide3Title: 'Planifica tu día',
-    slide3Subtitle: 'Añade tareas y vélas en un reloj.\nTu ritmo, tu plan.',
-    slide4Title: 'Ve tu momentum',
-    slide4Subtitle: 'Reflexiona sobre lo que lograste.\nSin presión.',
+    slide3Subtitle: 'Crea tu lista de tareas y visualiza\ntu horario en un reloj.',
+    slide4Title: 'Cierra el día y reflexiona',
+    slide4Subtitle: 'Cierra el día en Cierre del Día.\nExplora patrones y estado en Revisión.',
   },
 } as const;

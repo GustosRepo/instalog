@@ -197,6 +197,18 @@ class WidgetPresetsModule: NSObject {
     resolver(["success": true])
   }
   
+  @objc
+  func saveLanguage(_ language: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+    guard let userDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+      rejecter("APP_GROUP_ERROR", "Failed to access App Group UserDefaults", nil)
+      return
+    }
+    userDefaults.set(language, forKey: "@instalog/language")
+    userDefaults.synchronize()
+    WidgetCenter.shared.reloadAllTimelines()
+    resolver(["success": true])
+  }
+
   // MARK: - React Native Configuration
   
   @objc

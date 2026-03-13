@@ -81,6 +81,14 @@ export default {
     editSaveButton: 'บันทึก',
   },
 
+  moods: {
+    calm: 'สงบ',
+    neutral: 'เป็นกลาง',
+    tired: 'เพลีย',
+    overwhelmed: 'ท่วมท้น',
+    motivated: 'มีแรง',
+  },
+
   library: {
     tabThoughts: '💭 ความคิด',
     tabIdeas: '💡 ไอเดีย',
@@ -297,16 +305,19 @@ export default {
   },
 
   onboarding: {
+    languageTitle: 'เลือกภาษาของคุณ',
+    languageSubtitle: 'เปลี่ยนได้ตลอดเวลาในการตั้งค่า',
+    continueButton: 'ดำเนินการต่อ',
     skipButton: 'ข้าม',
     nextButton: 'ถัดไป',
     getStartedButton: 'เริ่มเลย',
-    slide1Title: 'บันทึกใน 1 แตะ',
-    slide1Subtitle: 'จับภาพความสำเร็จทันที\nไม่ต้องพิมพ์',
-    slide2Title: 'จัดระเบียบทีหลัง',
-    slide2Subtitle: 'จัดการเมื่อมีเวลา\nหมวดหมู่เป็นตัวเลือกเสมอ',
+    slide1Title: 'บันทึกในหนึ่งแตะ',
+    slide1Subtitle: 'ระบายความคิด งาน และไอเดียทันที\nยังไม่ต้องจัดระเบียบ',
+    slide2Title: 'กล่องรับจัดการให้',
+    slide2Subtitle: 'ทุกรายการถูกจัดหมวดหมู่อัตโนมัติ\nยืนยันหรือเปลี่ยนด้วยการปัด',
     slide3Title: 'วางแผนวันของคุณ',
-    slide3Subtitle: 'เพิ่มงานและดูบนนาฬิกา\nจังหวะของคุณ แผนของคุณ',
-    slide4Title: 'เห็นโมเมนตัมของคุณ',
-    slide4Subtitle: 'ทบทวนสิ่งที่ทำสำเร็จ\nสงบ ไม่กดดัน',
+    slide3Subtitle: 'สร้างรายการงานและดู\nตารางเวลาบนนาฬิกา',
+    slide4Title: 'สรุปและทบทวน',
+    slide4Subtitle: 'สรุปวันใน สรุปวัน\nค้นหารูปแบบและอารมณ์ในรีวิว',
   },
 } as const;

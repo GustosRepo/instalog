@@ -1,8 +1,11 @@
 import {create} from 'zustand';
+import {NativeModules} from 'react-native';
 import i18n from '../i18n';
-import {storage} from '../storage/mmkv';
+import {storage, STORAGE_KEYS} from '../storage/mmkv';
 
-const LANGUAGE_KEY = '@instalog/language';
+const {WidgetPresetsModule} = NativeModules;
+
+const LANGUAGE_KEY = STORAGE_KEYS.LANGUAGE;
 
 export type AppLanguage = 'en' | 'es' | 'th';
 export const SUPPORTED_LANGUAGES: {code: AppLanguage; label: string; nativeLabel: string}[] = [
@@ -24,6 +27,8 @@ export const useLanguageStore = create<LanguageState>((set) => ({
     storage.setString(LANGUAGE_KEY, lang);
     i18n.changeLanguage(lang);
     set({language: lang});
+    // Sync to App Group so the widget can read it
+    WidgetPresetsModule?.saveLanguage(lang).catch(() => {});
   },
 
   loadSavedLanguage: () => {

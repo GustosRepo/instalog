@@ -72,9 +72,16 @@ class SharedStore {
     private static let isProKey          = "@instalog/isPro"
     private static let totalLogCountKey  = "@instalog/totalLogCount"
     private static let freeLogLimitKey   = "@instalog/freeLogLimit"
+    private static let languageKey       = "@instalog/language"
 
     private static var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupIdentifier)
+    }
+
+    // MARK: - Language
+
+    static func loadLanguage() -> String {
+        return userDefaults?.string(forKey: languageKey) ?? "en"
     }
 
     // MARK: - Paywall
