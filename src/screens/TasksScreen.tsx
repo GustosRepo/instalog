@@ -925,7 +925,7 @@ const TasksScreen: React.FC = () => {
           {/* Clock upsell for free users */}
           {!allEmpty && !isPro && timedTasks.length > 0 && (
             <TouchableOpacity
-              onPress={() => navigation.navigate('Paywall')}
+              onPress={() => navigation.navigate('Paywall', {feature: t('tasks.clockViewUpsellTitle')})}
               style={{
                 backgroundColor: '#141821',
                 borderRadius: 16,
@@ -1230,7 +1230,7 @@ const TasksScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => {
                 if (!isPro) {
-                  navigation.navigate('Paywall');
+                  navigation.navigate('Paywall', {feature: t('tasks.clockViewUpsellTitle')});
                   return;
                 }
                 if (showTimePicker) {

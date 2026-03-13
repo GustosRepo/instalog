@@ -224,7 +224,7 @@ const TypedFeedScreen: React.FC<TypedFeedProps> = ({types: propTypes, title: pro
         </View>
       ) : (
         <TouchableOpacity
-          onPress={() => navigation.navigate('Paywall' as never)}
+          onPress={() => (navigation as any).navigate('Paywall', {feature: t('nav.tabLibrary')})}
           style={{
             flexDirection: 'row',
             alignItems: 'center',

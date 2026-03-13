@@ -19,6 +19,8 @@ import {useOnboardingStore} from '../stores/useOnboardingStore';
 import {Haptics} from '../utils/haptics';
 import {useTranslation} from 'react-i18next';
 import {useLanguageStore, SUPPORTED_LANGUAGES, AppLanguage} from '../stores/useLanguageStore';
+import {MOODS} from '../utils/moods';
+import {ImageSourcePropType} from 'react-native';
 
 const {width} = Dimensions.get('window');
 
@@ -26,7 +28,7 @@ interface OnboardingSlide {
   id: number;
   title: string;
   subtitle: string;
-  emoji: string;
+  mascot: ImageSourcePropType;
 }
 
 const OnboardingScreen: React.FC = () => {
@@ -38,14 +40,60 @@ const OnboardingScreen: React.FC = () => {
   const {completeOnboarding} = useOnboardingStore();
 
   const slides: OnboardingSlide[] = [
-    {id: 1, title: t('onboarding.slide1Title'), subtitle: t('onboarding.slide1Subtitle'), emoji: '🧠'},
-    {id: 2, title: t('onboarding.slide2Title'), subtitle: t('onboarding.slide2Subtitle'), emoji: '📥'},
-    {id: 3, title: t('onboarding.slide3Title'), subtitle: t('onboarding.slide3Subtitle'), emoji: '🗓️'},
-    {id: 4, title: t('onboarding.slide4Title'), subtitle: t('onboarding.slide4Subtitle'), emoji: '📊'},
+    {id: 1, title: t('onboarding.slide1Title'), subtitle: t('onboarding.slide1Subtitle'), mascot: MOODS.happy},
+    {id: 2, title: t('onboarding.slide2Title'), subtitle: t('onboarding.slide2Subtitle'), mascot: MOODS.cheerful},
+    {id: 3, title: t('onboarding.slide3Title'), subtitle: t('onboarding.slide3Subtitle'), mascot: MOODS.chill},
+    {id: 4, title: t('onboarding.slide4Title'), subtitle: t('onboarding.slide4Subtitle'), mascot: MOODS.heart},
   ];
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Mascot entrance + float animations
+  const mascotScale = useRef(new Animated.Value(0.6)).current;
+  const mascotOpacity = useRef(new Animated.Value(0)).current;
+  const mascotFloat = useRef(new Animated.Value(0)).current;
+  const floatLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const startMascotAnimation = () => {
+    // Stop any running float loop
+    floatLoopRef.current?.stop();
+    mascotFloat.setValue(0);
+
+    // Spring entrance
+    Animated.parallel([
+      Animated.spring(mascotScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(mascotOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Gentle float loop after entrance settles
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(mascotFloat, {toValue: -10, duration: 1400, useNativeDriver: true}),
+          Animated.timing(mascotFloat, {toValue: 0,  duration: 1400, useNativeDriver: true}),
+        ])
+      );
+      floatLoopRef.current = loop;
+      loop.start();
+    });
+  };
+
+  // Reset + play mascot animation whenever the active slide changes
+  React.useEffect(() => {
+    mascotScale.setValue(0.6);
+    mascotOpacity.setValue(0);
+    startMascotAnimation();
+    return () => { floatLoopRef.current?.stop(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -79,8 +127,8 @@ const OnboardingScreen: React.FC = () => {
     return (
       <View style={{flex: 1, backgroundColor: '#0B0D10', paddingHorizontal: 32, justifyContent: 'center'}}>
         <Image
-          source={require('../../assets/logonobg.png')}
-          style={{width: 72, height: 72, alignSelf: 'center', marginBottom: 24, opacity: 0.9}}
+          source={MOODS.cheerful}
+          style={{width: 100, height: 100, alignSelf: 'center', marginBottom: 20}}
           resizeMode="contain"
         />
         <Text style={{color: '#EDEEF0', fontSize: 26, fontWeight: '700', textAlign: 'center', marginBottom: 8}}>
@@ -161,11 +209,20 @@ const OnboardingScreen: React.FC = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         bounces={false}>
-        {slides.map(slide => (
+        {slides.map((slide, idx) => (
           <View
             key={slide.id}
             style={{width, flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40}}>
-            <Text style={{fontSize: 80, marginBottom: 32}}>{slide.emoji}</Text>
+            <Animated.Image
+              source={slide.mascot}
+              style={[
+                {width: 130, height: 130, marginBottom: 28},
+                idx === currentIndex
+                  ? {transform: [{scale: mascotScale}, {translateY: mascotFloat}], opacity: mascotOpacity}
+                  : {opacity: 0},
+              ]}
+              resizeMode="contain"
+            />
             <Text style={{color: '#EDEEF0', fontSize: 32, fontWeight: '700', textAlign: 'center', marginBottom: 16}}>
               {slide.title}
             </Text>

@@ -279,7 +279,7 @@ const WidgetConfigScreen: React.FC = () => {
               key={l}
               onPress={() => {
                 if (isLocked) {
-                  navigation.navigate('Paywall' as never);
+                  navigation.navigate('Paywall', {feature: t('settings.widgetConfigTitle')} as never);
                   return;
                 }
                 setConfig(c => ({...c, layout: l}));
@@ -449,7 +449,7 @@ const WidgetConfigScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={isPro ? 1 : 0.85}
           disabled={isPro}
-          onPress={() => navigation.navigate('Paywall' as never)}>
+          onPress={() => navigation.navigate('Paywall', {feature: t('widgetConfig.displaySettingsLabel')} as never)}>
           <View
             pointerEvents={isPro ? 'auto' : 'none'}
             style={{opacity: isPro ? 1 : 0.4, backgroundColor: '#141821', borderRadius: 14, overflow: 'hidden', marginBottom: 28}}>

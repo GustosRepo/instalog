@@ -559,7 +559,7 @@ const ReviewScreen: React.FC = () => {
         {isPro ? (
           <ActivityHeatmap logsByDay={logsByDay} tasksByDay={completedTasksByDay} />
         ) : (
-          <ProUpsell feature={t('review.heatmapProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall')} />
+          <ProUpsell feature={t('review.heatmapProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall', {feature: t('review.heatmapProUpsellTitle')})} />
         )}
         <MoodInsights />
         {completedTasks.length > 0 && (
@@ -604,7 +604,7 @@ const ReviewScreen: React.FC = () => {
         {isPro ? (
           <SearchSection logs={allLogs} />
         ) : (
-          <ProUpsell feature={t('review.searchProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall')} />
+          <ProUpsell feature={t('review.searchProUpsellTitle')} onUpgrade={() => navigation.navigate('Paywall', {feature: t('review.searchProUpsellTitle')})} />
         )}
       </ScrollView>
       </ImageBackground>

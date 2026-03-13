@@ -6,23 +6,28 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {StatusBar, View, Text, Linking, Platform, AppState, NativeModules} from 'react-native';
+import {StatusBar, View, Text, Linking, Platform, AppState, NativeModules, Modal, TouchableOpacity, ScrollView} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {CommonActions} from '@react-navigation/native';
 import AppNavigator, {navigationRef} from './src/navigation/AppNavigator';
-import {storage} from './src/storage/mmkv';
+import {storage, STORAGE_KEYS} from './src/storage/mmkv';
 import {useLogStore} from './src/stores/useLogStore';
 import {useSubscriptionStore} from './src/stores/useSubscriptionStore';
 import {useHintsStore} from './src/stores/useHintsStore';
 import {useTaskStore} from './src/stores/useTaskStore';
 import {useLanguageStore} from './src/stores/useLanguageStore';
+import {useTranslation} from 'react-i18next';
 import './src/i18n'; // initialize i18n
+
+const APP_VERSION = '1.0.3'; // bump this with every release
 
 const {StoreKitModule} = NativeModules;
 
 function App(): React.JSX.Element {
+  const {t} = useTranslation();
   const [isReady, setIsReady] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const instalog = useLogStore(state => state.instalog);
   const refreshLogs = useLogStore(state => state.refreshLogs);
   const loadSavedLanguage = useLanguageStore(state => state.loadSavedLanguage);
@@ -103,6 +108,13 @@ function App(): React.JSX.Element {
       refreshSubscription();
       loadHints();
       spawnRecurringTasks();
+
+      // Show What's New if user hasn't seen this version yet
+      const seenVersion = storage.getString(STORAGE_KEYS.SEEN_VERSION);
+      if (seenVersion !== APP_VERSION) {
+        setShowWhatsNew(true);
+      }
+
       setIsReady(true);
     });
     
@@ -136,6 +148,11 @@ function App(): React.JSX.Element {
     };
   }, [handleURL, refreshLogs, refreshBuckets, refreshTasks, spawnRecurringTasks]);
 
+  const dismissWhatsNew = () => {
+    storage.setString(STORAGE_KEYS.SEEN_VERSION, APP_VERSION);
+    setShowWhatsNew(false);
+  };
+
   if (!isReady) {
     return (
       <View className="flex-1 justify-center items-center bg-dark-bg">
@@ -149,6 +166,64 @@ function App(): React.JSX.Element {
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor="#0B0D10" />
         <AppNavigator />
+
+        {/* What's New Modal */}
+        <Modal
+          visible={showWhatsNew}
+          transparent
+          animationType="slide"
+          onRequestClose={dismissWhatsNew}>
+          <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)'}}>
+            <View style={{
+              backgroundColor: '#141821',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingHorizontal: 28,
+              paddingTop: 28,
+              paddingBottom: 48,
+            }}>
+              {/* Handle bar */}
+              <View style={{width: 40, height: 4, borderRadius: 2, backgroundColor: '#3A3F47', alignSelf: 'center', marginBottom: 24}} />
+
+              <Text style={{color: '#EDEEF0', fontSize: 26, fontWeight: '700', marginBottom: 4}}>
+                {t('whatsNew.title')}
+              </Text>
+              <Text style={{color: '#9AA0A6', fontSize: 14, marginBottom: 28}}>
+                {t('whatsNew.version', {version: APP_VERSION})}
+              </Text>
+
+              {[
+                {title: t('whatsNew.feature1Title'), body: t('whatsNew.feature1Body')},
+                {title: t('whatsNew.feature2Title'), body: t('whatsNew.feature2Body')},
+                {title: t('whatsNew.feature3Title'), body: t('whatsNew.feature3Body')},
+              ].map((item, i) => (
+                <View key={i} style={{marginBottom: 20}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 16, fontWeight: '600', marginBottom: 4}}>
+                    {item.title}
+                  </Text>
+                  <Text style={{color: '#9AA0A6', fontSize: 14, lineHeight: 21}}>
+                    {item.body}
+                  </Text>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                onPress={dismissWhatsNew}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: '#6E6AF2',
+                  paddingVertical: 16,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  marginTop: 8,
+                }}>
+                <Text style={{color: '#FFFFFF', fontSize: 17, fontWeight: '600'}}>
+                  {t('whatsNew.dismissButton')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

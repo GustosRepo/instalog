@@ -1,9 +1,9 @@
 /**
  * Paywall Screen
- * Clean, Apple-style upgrade prompt
+ * Apple-style upgrade prompt — 2026 best practices
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useMemo, useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,8 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useSubscriptionStore} from '../stores/useSubscriptionStore';
 import {Haptics} from '../utils/haptics';
@@ -35,11 +35,15 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
   showDismiss = true,
 }) => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const {t} = useTranslation();
+  const insets = useSafeAreaInsets();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  
+
+  const featureParam: string | undefined = route.params?.feature;
+
   const {
     setPro, 
     markPaywallSeen, 
@@ -58,6 +62,23 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
   // Get product prices from loaded products
   const monthlyProduct = products.find(p => p.id === PRODUCT_IDS.monthly);
   const yearlyProduct = products.find(p => p.id === PRODUCT_IDS.yearly);
+
+  // Yearly savings vs 12x monthly
+  const savingsPercent = useMemo(() => {
+    const monthly = parseFloat(monthlyProduct?.price ?? '3.99');
+    const yearly = parseFloat(yearlyProduct?.price ?? '19.99');
+    if (!monthly || !yearly) return 0;
+    return Math.round((1 - yearly / (monthly * 12)) * 100);
+  }, [monthlyProduct, yearlyProduct]);
+
+  // Per-month equivalent for yearly plan
+  const yearlyPerMonth = useMemo(() => {
+    const yearly = parseFloat(yearlyProduct?.price ?? '19.99');
+    const perMonth = (yearly / 12).toFixed(2);
+    const symbol = (yearlyProduct?.displayPrice ?? '$19.99').replace(/[\d.,\s]/g, '')[0] ?? '$';
+    return `${symbol}${perMonth}`;
+  }, [yearlyProduct]);
+
   const selectedProduct = selectedPlan === 'monthly' ? monthlyProduct : yearlyProduct;
   const selectedDisplayPrice = selectedProduct?.displayPrice ?? (selectedPlan === 'yearly' ? '$19.99' : '$3.99');
   const selectedBillingPeriod = selectedPlan === 'yearly' ? 'year' : 'month';
@@ -116,15 +137,22 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
     Haptics.light();
     onDismiss?.() || navigation.goBack();
   };
+
+  const handleSelectPlan = (plan: 'monthly' | 'yearly') => {
+    if (plan !== selectedPlan) {
+      Haptics.light();
+      setSelectedPlan(plan);
+    }
+  };
   
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}}>
-      <ScrollView 
-        style={{flex: 1}} 
+    <SafeAreaView style={{flex: 1, backgroundColor: '#0B0D10'}} edges={['top']}>
+      <ScrollView
+        style={{flex: 1}}
         contentContainerStyle={{paddingHorizontal: 24, paddingBottom: 20}}
         showsVerticalScrollIndicator={false}
       >
-        {/* Dismiss button - always available */}
+        {/* Dismiss button */}
         {showDismiss && (
           <TouchableOpacity
             onPress={handleDismiss}
@@ -133,10 +161,9 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <Text style={{color: '#9AA0A6', fontSize: 16}}>{t('paywall.dismissButton')}</Text>
           </TouchableOpacity>
         )}
-        
-        {/* Spacer */}
+
         {!showDismiss && <View style={{height: 20}} />}
-        
+
         {/* Icon */}
         <View style={{alignItems: 'center', marginBottom: 20}}>
           <View style={{
@@ -150,8 +177,8 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <Text style={{fontSize: 36}}>✓</Text>
           </View>
         </View>
-        
-        {/* Headline */}
+
+        {/* Headline — context-aware */}
         <Text style={{
           color: '#EDEEF0',
           fontSize: 32,
@@ -159,9 +186,9 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           textAlign: 'center',
           marginBottom: 10,
         }}>
-          {t('paywall.headline')}
+          {featureParam ? t('paywall.contextHeadline', {feature: featureParam}) : t('paywall.headline')}
         </Text>
-        
+
         {/* Subheadline */}
         <Text style={{
           color: '#9AA0A6',
@@ -173,7 +200,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
         }}>
           {t('paywall.subheadline')}
         </Text>
-        
+
         {/* Benefits */}
         <View style={{marginBottom: 24}}>
           {[
@@ -190,7 +217,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             </View>
           ))}
         </View>
-        
+
         {/* Pricing Options */}
         <View style={{marginBottom: 20}}>
           {isLoadingProducts ? (
@@ -202,7 +229,8 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             <>
               {/* Yearly */}
               <TouchableOpacity
-                onPress={() => setSelectedPlan('yearly')}
+                onPress={() => handleSelectPlan('yearly')}
+                activeOpacity={0.8}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -217,26 +245,41 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                 }}
               >
                 <View style={{flex: 1, paddingRight: 12}}>
-                  <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
-                    {t('paywall.planYearlyTitle')}
-                  </Text>
-                  <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
+                  <View style={{flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4}}>
+                    <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
+                      {t('paywall.planYearlyTitle')}
+                    </Text>
+                    {/* Most Popular badge */}
+                    <View style={{
+                      backgroundColor: '#6E6AF2',
+                      borderRadius: 6,
+                      paddingHorizontal: 7,
+                      paddingVertical: 2,
+                    }}>
+                      <Text style={{color: '#FFFFFF', fontSize: 11, fontWeight: '600'}}>
+                        {t('paywall.planYearlyBadge')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{color: '#9AA0A6', fontSize: 13}}>
                     {t('paywall.planYearlySubtitle')}
+                    {savingsPercent > 0 ? `  ·  ${t('paywall.planYearlySavings', {percent: savingsPercent})}` : ''}
                   </Text>
                 </View>
-                <View style={{alignItems: 'flex-end', paddingRight: 2}}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '800'}}>
                     {yearlyProduct?.displayPrice ?? '$19.99'}
                   </Text>
                   <Text style={{color: '#9AA0A6', fontSize: 12, marginTop: 2}}>
-                    {t('paywall.planYearlyPerPeriod')}
+                    {t('paywall.planYearlyPerMonth', {price: yearlyPerMonth})}
                   </Text>
                 </View>
               </TouchableOpacity>
-              
+
               {/* Monthly */}
               <TouchableOpacity
-                onPress={() => setSelectedPlan('monthly')}
+                onPress={() => handleSelectPlan('monthly')}
+                activeOpacity={0.8}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -250,14 +293,14 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
                 }}
               >
                 <View style={{flex: 1, paddingRight: 12}}>
-                  <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600'}}>
+                  <Text style={{color: '#EDEEF0', fontSize: 17, fontWeight: '600', marginBottom: 4}}>
                     {t('paywall.planMonthlyTitle')}
                   </Text>
-                  <Text style={{color: '#9AA0A6', fontSize: 14, marginTop: 2}}>
+                  <Text style={{color: '#9AA0A6', fontSize: 13}}>
                     {t('paywall.planMonthlySubtitle')}
                   </Text>
                 </View>
-                <View style={{alignItems: 'flex-end', paddingRight: 2}}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Text style={{color: '#EDEEF0', fontSize: 24, fontWeight: '800'}}>
                     {monthlyProduct?.displayPrice ?? '$3.99'}
                   </Text>
@@ -270,20 +313,26 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
           )}
         </View>
 
-        <Text
-          style={{
-            color: '#9AA0A6',
-            fontSize: 13,
-            textAlign: 'center',
-            lineHeight: 19,
-            marginBottom: 16,
-            paddingHorizontal: 8,
-          }}
-        >
+        <Text style={{
+          color: '#9AA0A6',
+          fontSize: 13,
+          textAlign: 'center',
+          lineHeight: 19,
+          paddingHorizontal: 8,
+        }}>
           {t('paywall.legalChargeNotice', {price: selectedDisplayPrice, period: selectedBillingPeriod})}
         </Text>
-        
-        {/* CTA Button */}
+      </ScrollView>
+
+      {/* ── Sticky CTA strip ─────────────────────────────────────────────── */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 12,
+        paddingBottom: insets.bottom + 12,
+        backgroundColor: '#0B0D10',
+        borderTopWidth: 1,
+        borderTopColor: '#1A1D24',
+      }}>
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading}
@@ -292,7 +341,7 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             borderRadius: 12,
             paddingVertical: 16,
             alignItems: 'center',
-            marginBottom: 12,
+            marginBottom: 14,
             opacity: isLoading ? 0.7 : 1,
           }}
         >
@@ -304,47 +353,26 @@ const PaywallScreen: React.FC<PaywallScreenProps> = ({
             </Text>
           )}
         </TouchableOpacity>
-        
-        {/* Restore */}
-        <TouchableOpacity
-          onPress={handleRestore}
-          disabled={isRestoring}
-          style={{alignItems: 'center', paddingVertical: 12}}
-        >
-          {isRestoring ? (
-            <ActivityIndicator color="#9AA0A6" size="small" />
-          ) : (
-            <Text style={{color: '#9AA0A6', fontSize: 14}}>
-              {t('paywall.restoreButton')}
-            </Text>
-          )}
-        </TouchableOpacity>
-        
-        {/* Legal */}
-        <Text style={{
-          color: '#6B7280',
-          fontSize: 11,
-          textAlign: 'center',
-          lineHeight: 16,
-          marginTop: 8,
-          marginBottom: 16,
-        }}>
-          {t('paywall.legalAutoRenew')}{"\n"}
-          <Text
-            onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}
-            style={{textDecorationLine: 'underline'}}
-          >
-            {t('paywall.legalEULA')}
-          </Text>
-          {' · '}
-          <Text
-            onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}
-            style={{textDecorationLine: 'underline'}}
-          >
-            {t('paywall.legalPrivacyPolicy')}
-          </Text>
-        </Text>
-      </ScrollView>
+
+        {/* Restore · EULA · Privacy — single compact row */}
+        <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 10}}>
+          <TouchableOpacity onPress={handleRestore} disabled={isRestoring}>
+            {isRestoring ? (
+              <ActivityIndicator color="#9AA0A6" size="small" />
+            ) : (
+              <Text style={{color: '#9AA0A6', fontSize: 12}}>{t('paywall.restoreButton')}</Text>
+            )}
+          </TouchableOpacity>
+          <Text style={{color: '#3A3D44', fontSize: 12}}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
+            <Text style={{color: '#9AA0A6', fontSize: 12}}>{t('paywall.legalEULA')}</Text>
+          </TouchableOpacity>
+          <Text style={{color: '#3A3D44', fontSize: 12}}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.code-werx.com/instalog-privacy')}>
+            <Text style={{color: '#9AA0A6', fontSize: 12}}>{t('paywall.legalPrivacyPolicy')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
