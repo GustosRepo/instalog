@@ -120,6 +120,10 @@ struct InstalogWidgetEntryView : View {
             smallWidget
         case .systemMedium:
             mediumWidget
+        case .systemLarge:
+            largeWidget
+        case .systemExtraLarge:
+            extraLargeWidget
         case .accessoryCircular:
             lockScreenCircular
         case .accessoryRectangular:
@@ -242,74 +246,80 @@ struct InstalogWidgetEntryView : View {
         let showCount = config?.showUnprocessedCount ?? true
         let isFourAction = actions.count == 4
 
-        return ZStack(alignment: .topLeading) {
-            // Brain mascot — bottom-left watermark, smaller so it doesn't crowd content
-            VStack {
-                Spacer()
-                HStack {
-                    Image("logonobg")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 120, height: 120)
-                        .opacity(0.25)
-                        .offset(x: -20, y: 20)
-                    Spacer()
-                }
-            }
+        return ZStack(alignment: .bottomLeading) {
+            // Brain mascot — tuck it lower/left so it stops competing with the header
+            Image("logonobg")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 78, height: 78)
+                .opacity(0.18)
+                .offset(x: -10, y: 12)
 
-            VStack(alignment: .trailing, spacing: 0) {
-                // Count badge — top-right only, clear of brain
-                HStack {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header row
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(s.instalog)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(textColor)
+
+                        Text(entry.todayCount == 1 ? "1 \(s.capturedToday)" : "\(entry.todayCount) \(s.capturedToday)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(secondaryTextColor)
+                    }
+
                     Spacer()
+
                     if showCount && entry.unprocessedCount > 0 {
                         Text("\(entry.unprocessedCount) \(s.unprocessed)")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(accentColor)
                             .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, 3)
                             .background(accentColor.opacity(0.15))
                             .cornerRadius(5)
-                    } else if showCount {
-                        Text("\(entry.todayCount) \(s.todayBadge)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(secondaryTextColor)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 18)
 
                 // Action buttons
-                HStack {
-                    Spacer()
-                    if actions.isEmpty {
+                if actions.isEmpty {
+                    HStack {
+                        Spacer()
                         Link(destination: URL(string: "instalog://log")!) {
                             actionButtonContent(label: s.brainDump, icon: "square.and.pencil", color: accentColor)
                         }
-                    } else if !isFourAction {
-                        HStack(spacing: 24) {
-                            ForEach(actions) { action in
-                                actionButton(for: action)
-                            }
+                        Spacer()
+                    }
+                } else if !isFourAction {
+                    HStack(spacing: 24) {
+                        Spacer()
+                        ForEach(actions) { action in
+                            actionButton(for: action)
                         }
-                    } else {
-                        // 2×2 grid — compact buttons to fit widget height
-                        let row1 = Array(actions.prefix(2))
-                        let row2 = Array(actions.suffix(2))
-                        VStack(spacing: 8) {
-                            HStack(spacing: 28) {
-                                ForEach(row1) { action in compactActionButton(for: action) }
-                            }
-                            HStack(spacing: 28) {
-                                ForEach(row2) { action in compactActionButton(for: action) }
-                            }
+                        Spacer()
+                    }
+                } else {
+                    // 2×2 grid — slightly tighter and centered with more breathing room above
+                    let row1 = Array(actions.prefix(2))
+                    let row2 = Array(actions.suffix(2))
+                    VStack(spacing: 10) {
+                        HStack(spacing: 26) {
+                            ForEach(row1) { action in compactActionButton(for: action) }
+                        }
+                        HStack(spacing: 26) {
+                            ForEach(row2) { action in compactActionButton(for: action) }
                         }
                     }
-                    Spacer()
+                    .frame(maxWidth: .infinity)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
         }
     }
 
@@ -323,11 +333,11 @@ struct InstalogWidgetEntryView : View {
 
     @ViewBuilder
     private func compactButtonContent(label: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 4) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.25))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 42, height: 42)
                     .blur(radius: 6)
                 Circle()
                     .fill(LinearGradient(
@@ -335,19 +345,223 @@ struct InstalogWidgetEntryView : View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
-                    .frame(width: 32, height: 32)
+                    .frame(width: 34, height: 34)
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
             }
             Text(label)
-                .font(.system(size: 7, weight: .semibold))
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(textColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+    }
+    
+    // MARK: - Large Widget (Summary + Actions)
+
+    private var largeWidget: some View {
+        let config = entry.widgetConfig
+        let isPro = SharedStore.isPro()
+        let actions = isPro ? Array((config?.actions ?? []).prefix(4)) : Array((config?.actions ?? []).prefix(1))
+        let showCount = config?.showUnprocessedCount ?? true
+
+        return ZStack(alignment: .bottomLeading) {
+            // Brain mascot watermark — smaller and lower so it doesn't fight the action row
+            Image("logonobg")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 86, height: 86)
+                .opacity(0.14)
+                .offset(x: -10, y: 12)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with counts
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(s.instalog)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(textColor)
+
+                        Text(entry.todayCount == 1 ? "1 \(s.capturedToday)" : "\(entry.todayCount) \(s.capturedToday)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(secondaryTextColor)
+                    }
+
+                    Spacer()
+
+                    if showCount && entry.unprocessedCount > 0 {
+                        Text("\(entry.unprocessedCount) \(s.unprocessed)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(accentColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(accentColor.opacity(0.15))
+                            .cornerRadius(5)
+                    }
+                }
+
+                Spacer(minLength: 18)
+
+                // Action buttons — tighter spacing so 4 actions fit cleanly in the square large widget
+                HStack(spacing: 18) {
+                    Spacer(minLength: 0)
+                    if actions.isEmpty {
+                        Link(destination: URL(string: "instalog://capture")!) {
+                            largeActionContent(label: s.quickLog, icon: "square.and.pencil", color: accentColor)
+                        }
+                    } else {
+                        ForEach(actions) { action in
+                            Link(destination: deepLinkURL(for: action)) {
+                                largeActionContent(label: s.labelForType(action.type, fallback: action.label), icon: action.icon, color: actionColor(action.type))
+                            }
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                Spacer(minLength: 6)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+        }
+    }
+
+    @ViewBuilder
+    private func largeActionContent(label: String, icon: String, color: Color) -> some View {
+        let glow = color.opacity(0.32)
+        VStack(spacing: 5) {
+            ZStack {
+                Circle()
+                    .fill(glow)
+                    .frame(width: 56, height: 56)
+                    .blur(radius: 10)
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [color, color.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 42, height: 42)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            Text(label)
+                .font(.system(size: 8, weight: .semibold))
                 .foregroundColor(textColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
     }
-    
+
+    private func extraLargeActionContent(label: String, icon: String, color: Color) -> some View {
+        let glow = color.opacity(0.35)
+        return VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(glow)
+                    .frame(width: 82, height: 82)
+                    .blur(radius: 14)
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [color, color.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 66, height: 66)
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(textColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    // MARK: - Extra Large Widget (iPad only — wide)
+
+    private var extraLargeWidget: some View {
+        let config = entry.widgetConfig
+        let isPro = SharedStore.isPro()
+        let actions = isPro ? Array((config?.actions ?? []).prefix(4)) : Array((config?.actions ?? []).prefix(1))
+        let showCount = config?.showUnprocessedCount ?? true
+
+        return HStack(spacing: 0) {
+            // Left side — branding + stats
+            ZStack(alignment: .bottomLeading) {
+                // Brain mascot watermark
+                Image("logonobg")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
+                    .opacity(0.18)
+                    .offset(x: -10, y: 10)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(s.instalog)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(textColor)
+
+                    Spacer()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        if entry.todayCount > 0 {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("\(entry.todayCount)")
+                                    .font(.system(size: 44, weight: .bold))
+                                    .foregroundColor(accentColor)
+                                Text(s.capturedToday)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(secondaryTextColor)
+                            }
+                        }
+                        if showCount && entry.unprocessedCount > 0 {
+                            Text("\(entry.unprocessedCount) \(s.unprocessed)")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(accentColor.opacity(0.8))
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Divider
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 1)
+                .padding(.vertical, 8)
+
+            // Right side — action buttons
+            VStack {
+                Spacer()
+                if actions.isEmpty {
+                    Link(destination: URL(string: "instalog://capture")!) {
+                        extraLargeActionContent(label: s.quickLog, icon: "square.and.pencil", color: accentColor)
+                    }
+                } else {
+                    HStack(spacing: 40) {
+                        ForEach(actions) { action in
+                            Link(destination: deepLinkURL(for: action)) {
+                                extraLargeActionContent(label: s.labelForType(action.type, fallback: action.label), icon: action.icon, color: actionColor(action.type))
+                            }
+                        }
+                    }
+                }
+                Spacer()
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
     // MARK: - Lock Screen Widgets
     
     @available(iOS 16.0, *)
@@ -420,12 +634,13 @@ struct InstalogWidget: Widget {
                     .background(Color(red: 18/255, green: 18/255, blue: 20/255))
             }
         }
-        .contentMarginsDisabled()
         .configurationDisplayName("Instalog")
         .description("Quick log buttons for instant logging")
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
+            .systemLarge,
+            .systemExtraLarge,
             .accessoryCircular,
             .accessoryRectangular,
             .accessoryInline
@@ -609,10 +824,9 @@ struct InstalogTaskWidget: Widget {
                     .background(Color(red: 18/255, green: 18/255, blue: 20/255))
             }
         }
-        .contentMarginsDisabled()
         .configurationDisplayName("Instalog Tasks")
         .description("See and check off today's tasks from your home screen.")
-        .supportedFamilies([.systemMedium])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
 

@@ -13,7 +13,7 @@ import {
   InstalogOptions,
 } from '../utils/instalog';
 import {storage, STORAGE_KEYS} from '../storage/mmkv';
-import {classifyWithNL} from '../utils/categorize';
+import {classifyWithNL, isConfidentClassification, recordCorrection} from '../utils/categorize';
 
 // Return shape for today's capture statistics
 export interface CaptureStats {
@@ -66,9 +66,10 @@ export const useLogStore = create<LogState>((set, get) => ({
     const entry = coreInstalog(options);
     set(state => ({logs: [...state.logs, entry]}));
 
-    // Fire NL classification async — updates suggestedType if NLTagger gives
-    // a better answer than the synchronous keyword classifier
-    if (entry.text) {
+    // Fire NL classification async — only used when the synchronous scoring
+    // classifier fell through to 'thought' (no keyword/structural match).
+    // If the sync engine produced a confident result we keep it.
+    if (entry.text && entry.suggestedType === 'thought' && !isConfidentClassification(entry.text)) {
       classifyWithNL(entry.text).then(nlType => {
         if (nlType !== entry.suggestedType) {
           const updated = updateLog(entry.id, {suggestedType: nlType});
@@ -118,6 +119,11 @@ export const useLogStore = create<LogState>((set, get) => ({
   },
 
   processItem: (logId, type) => {
+    const entry = get().logs.find(l => l.id === logId);
+    // Record correction so the scorer learns from overrides
+    if (entry?.text && entry.suggestedType && type && type !== entry.suggestedType) {
+      recordCorrection(entry.text, entry.suggestedType, type);
+    }
     const updated = updateLog(logId, {
       status: 'processed',
       type,

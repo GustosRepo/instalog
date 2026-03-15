@@ -34,6 +34,30 @@ class NLClassifierModule: NSObject {
 
   // ─── Classification logic ───────────────────────────────────────────────────
 
+  // Emotion vocabulary — must contain at least one to declare mood
+  private let emotionWords: Set<String> = [
+    // energy
+    "tired", "exhausted", "drained", "burned", "burnt", "sluggish", "fatigued",
+    "wiped", "weary", "energized", "pumped", "wired",
+    // positive
+    "happy", "excited", "motivated", "inspired", "grateful", "hopeful",
+    "confident", "proud", "stoked", "joyful", "elated", "optimistic",
+    "amazing", "wonderful", "fantastic", "blessed", "relieved", "cheerful",
+    // negative
+    "sad", "stressed", "anxious", "depressed", "frustrated", "angry",
+    "nervous", "lonely", "bored", "overwhelmed", "scared", "worried",
+    "irritated", "irritable", "numb", "restless", "disconnected", "moody",
+    "upset", "miserable", "heartbroken", "defeated", "helpless",
+    // feeling verbs/phrases
+    "feeling", "felt", "vibes", "headspace", "mindset", "blah", "meh", "ugh",
+  ]
+
+  private func hasEmotionWord(_ lower: String) -> Bool {
+    let words = Set(lower.components(separatedBy: .whitespacesAndNewlines)
+                        .map { $0.trimmingCharacters(in: .punctuationCharacters) })
+    return !words.isDisjoint(with: emotionWords)
+  }
+
   private func classify(_ text: String) -> String {
     let lower = text.lowercased()
 
@@ -46,8 +70,8 @@ class NLClassifierModule: NSObject {
 
     // 3. Classify based on signals
 
-    // Strong positive/negative sentiment with personal language = mood
-    if abs(sentiment) > 0.4 && self.hasFirstPerson(lower) {
+    // Strong sentiment + first person + actual emotion vocabulary = mood
+    if abs(sentiment) > 0.5 && self.hasFirstPerson(lower) && self.hasEmotionWord(lower) {
       return "mood"
     }
 
@@ -58,7 +82,6 @@ class NLClassifierModule: NSObject {
 
     // Question form with noun-heavy structure = idea or thought
     if posInfo.isQuestion {
-      // Questions with action verbs = idea
       if posInfo.verbCount >= 1 && posInfo.nounCount >= 1 {
         return "idea"
       }
@@ -80,8 +103,8 @@ class NLClassifierModule: NSObject {
       return "task"
     }
 
-    // Mild sentiment alone = mood
-    if abs(sentiment) > 0.25 {
+    // High sentiment with emotion vocabulary = mood (no first-person required)
+    if abs(sentiment) > 0.6 && self.hasEmotionWord(lower) {
       return "mood"
     }
 

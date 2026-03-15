@@ -46,7 +46,9 @@ const ARC_COLORS = [
   '#F26E6E', // coral
 ];
 
-const CLOCK_SIZE = Dimensions.get('window').width - 80;
+import {CONTENT_MAX_WIDTH} from '../utils/layout';
+
+const CLOCK_SIZE = Math.min(Dimensions.get('window').width - 80, CONTENT_MAX_WIDTH - 80);
 const CENTER = CLOCK_SIZE / 2;
 const CLOCK_RADIUS = CLOCK_SIZE / 2 - 20;
 const ARC_RADIUS_PM = CLOCK_RADIUS - 10; // outer ring = PM (close to edge)

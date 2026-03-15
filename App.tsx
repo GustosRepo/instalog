@@ -76,7 +76,8 @@ function App(): React.JSX.Element {
     ) {
       navigateToTab('Instalog');
     } else if (url.includes('instalog://log')) {
-      instalog({text: null});
+      // Navigate to the Instalog tab so the user can type their log
+      navigateToTab('Instalog');
     } else if (url.includes('instalog://paywall')) {
       navigationRef.navigate('Paywall' as never);
     }

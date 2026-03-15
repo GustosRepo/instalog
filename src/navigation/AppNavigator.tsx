@@ -11,6 +11,7 @@ export const navigationRef = createNavigationContainerRef();
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {Text, View, ActivityIndicator, Animated, TouchableOpacity} from 'react-native';
+import {isIPad, CONTENT_MAX_WIDTH} from '../utils/layout';
 
 import {InstalogScreen, InboxScreen, WrapUpScreen, ReviewScreen, SettingsScreen, TasksScreen} from '../screens';
 import LibraryScreen from '../screens/LibraryScreen';
@@ -111,13 +112,14 @@ const TabNavigator: React.FC = () => {
   const {t} = useTranslation();
   return (
     <Tab.Navigator
+      sceneContainerStyle={isIPad ? {flex: 1, maxWidth: CONTENT_MAX_WIDTH, width: '100%', alignSelf: 'center'} : undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#141821',
           borderTopWidth: 0,
           paddingTop: 8,
-          height: 85,
+          height: isIPad ? 90 : 85,
           elevation: 0,
           shadowOpacity: 0,
         },

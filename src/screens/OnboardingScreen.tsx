@@ -21,6 +21,7 @@ import {useTranslation} from 'react-i18next';
 import {useLanguageStore, SUPPORTED_LANGUAGES, AppLanguage} from '../stores/useLanguageStore';
 import {MOODS} from '../utils/moods';
 import {ImageSourcePropType} from 'react-native';
+import {isIPad, CONTENT_MAX_WIDTH} from '../utils/layout';
 
 const {width} = Dimensions.get('window');
 
@@ -125,7 +126,8 @@ const OnboardingScreen: React.FC = () => {
   // ── Language Picker ──────────────────────────────────────────────────────
   if (!showSlides) {
     return (
-      <View style={{flex: 1, backgroundColor: '#0B0D10', paddingHorizontal: 32, justifyContent: 'center'}}>
+      <View style={{flex: 1, backgroundColor: '#0B0D10', justifyContent: 'center'}}>
+        <View style={{paddingHorizontal: 32, maxWidth: isIPad ? CONTENT_MAX_WIDTH : undefined, width: '100%', alignSelf: isIPad ? 'center' : undefined}}>
         <Image
           source={MOODS.cheerful}
           style={{width: 100, height: 100, alignSelf: 'center', marginBottom: 20}}
@@ -175,6 +177,7 @@ const OnboardingScreen: React.FC = () => {
             {t('onboarding.continueButton')}
           </Text>
         </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -212,7 +215,8 @@ const OnboardingScreen: React.FC = () => {
         {slides.map((slide, idx) => (
           <View
             key={slide.id}
-            style={{width, flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40}}>
+            style={{width, flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <View style={{width: '100%', maxWidth: isIPad ? Math.min(560, width - 80) : width, alignSelf: 'center', paddingHorizontal: 40, alignItems: 'center'}}>
             <Animated.Image
               source={slide.mascot}
               style={[
@@ -229,6 +233,7 @@ const OnboardingScreen: React.FC = () => {
             <Text style={{color: '#9AA0A6', fontSize: 18, textAlign: 'center', lineHeight: 26}}>
               {slide.subtitle}
             </Text>
+            </View>
           </View>
         ))}
       </ScrollView>
