@@ -20,7 +20,7 @@ import {useLanguageStore} from './src/stores/useLanguageStore';
 import {useTranslation} from 'react-i18next';
 import './src/i18n'; // initialize i18n
 
-const APP_VERSION = '1.0.3'; // bump this with every release
+const APP_VERSION = '2.0.0'; // bump this with every release
 
 const {StoreKitModule} = NativeModules;
 
