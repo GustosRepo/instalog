@@ -386,7 +386,7 @@ const MoodInsights: React.FC = () => {
         stats.map(s => (
           <View key={s.mood} style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10}}>
             <Image source={s.mascot} style={{width: 24, height: 24}} resizeMode="contain" />
-            <Text style={{color: '#9AA0A6', fontSize: 12, width: 72}}>{s.label}</Text>
+            <Text style={{color: '#9AA0A6', fontSize: 12, width: 72}}>{t(`moods.${s.mood}`)}</Text>
             <View style={{flex: 1, height: 8, backgroundColor: '#0B0D10', borderRadius: 4, overflow: 'hidden'}}>
               <View style={{
                 width: `${(s.count / max) * 100}%`,

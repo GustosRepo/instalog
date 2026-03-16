@@ -13,7 +13,7 @@ export default {
   },
 
   inbox: {
-    screenTitle: 'กล่องรับ',
+    screenTitle: 'ข้อความ',
     typeTask: 'งาน',
     typeNote: 'บันทึก',
     typeIdea: 'ไอเดีย',
@@ -83,10 +83,10 @@ export default {
 
   moods: {
     calm: 'สงบ',
-    neutral: 'เป็นกลาง',
+    neutral: 'เฉยๆ',
     tired: 'เพลีย',
-    overwhelmed: 'ท่วมท้น',
-    motivated: 'มีแรง',
+    overwhelmed: 'รับไม่ไหว',
+    motivated: 'มีไฟ',
   },
 
   library: {
@@ -134,7 +134,7 @@ export default {
 
   review: {
     screenTitle: 'รีวิว',
-    emptyState: 'ยังไม่มีอะไร รายการที่ดำเนินการจากกล่องรับจะปรากฏที่นี่',
+    emptyState: 'ยังไม่มีอะไร รายการที่ดำเนินการจากข้อความจะปรากฏที่นี่',
     activitySectionTitle: 'กิจกรรม',
     searchSectionTitle: 'ค้นหา',
     searchPlaceholder: 'ค้นหาบันทึกของคุณ…',
@@ -263,7 +263,7 @@ export default {
     actionThoughtDescription: 'บันทึกความคิดทันทีใน ระบายความคิด',
     actionThoughtDefaultLabel: 'ความคิด',
     actionTaskLabel: 'งานด่วน',
-    actionTaskDescription: 'สร้างงานเพื่อดำเนินการทีหลังในกล่องรับ',
+    actionTaskDescription: 'สร้างงานเพื่อดำเนินการทีหลังในข้อความ',
     actionTaskDefaultLabel: 'งาน',
     actionIdeaLabel: 'ไอเดียด่วน',
     actionIdeaDescription: 'จับภาพไอเดียเพื่อสำรวจทีหลัง',
@@ -282,7 +282,7 @@ export default {
     displaySettingsLabel: 'การตั้งค่าการแสดงผล',
     proBadge: '⭐ PRO',
     toggleUnprocessedCountLabel: 'แสดงจำนวนรอดำเนินการ',
-    toggleUnprocessedCountSublabel: 'ป้ายกล่องรับบนวิดเจ็ต',
+    toggleUnprocessedCountSublabel: 'ป้ายข้อความบนวิดเจ็ต',
     toggleTodayMoodLabel: 'แสดงอารมณ์วันนี้',
     toggleTodayMoodSublabel: 'อารมณ์สมองบนวิดเจ็ตถ้ามีพื้นที่',
     saveButton: 'บันทึกและอัปเดตวิดเจ็ต',
@@ -300,7 +300,7 @@ export default {
 
   nav: {
     tabInstalog: 'Instalog',
-    tabInbox: 'กล่องรับ',
+    tabInbox: 'ข้อความ',
     tabTasks: 'งาน',
     tabLibrary: 'คลัง',
     tabWrapUp: 'สรุปวัน',
@@ -319,12 +319,12 @@ export default {
     getStartedButton: 'เริ่มเลย',
     slide1Title: 'บันทึกในหนึ่งแตะ',
     slide1Subtitle: 'ระบายความคิด งาน และไอเดียทันที\nยังไม่ต้องจัดระเบียบ',
-    slide2Title: 'กล่องรับจัดการให้',
+    slide2Title: 'ข้อความจัดการให้',
     slide2Subtitle: 'ทุกรายการถูกจัดหมวดหมู่อัตโนมัติ\nยืนยันหรือเปลี่ยนด้วยการปัด',
     slide3Title: 'วางแผนวันของคุณ',
     slide3Subtitle: 'สร้างรายการงานและดู\nตารางเวลาบนนาฬิกา',
     slide4Title: 'สรุปและทบทวน',
-    slide4Subtitle: 'สรุปวันใน สรุปวัน\nค้นหารูปแบบและอารมณ์ในรีวิว',
+    slide4Subtitle: 'ปิดวันใน สรุปวัน\nค้นหารูปแบบและอารมณ์ในรีวิว',
   },
   whatsNew: {
     title: 'อะไรใหม่',
