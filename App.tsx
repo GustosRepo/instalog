@@ -6,7 +6,7 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {StatusBar, View, Text, Linking, Platform, AppState, NativeModules, Modal, TouchableOpacity, ScrollView} from 'react-native';
+import {StatusBar, View, Text, Linking, Platform, AppState, NativeModules, Modal, TouchableOpacity, ScrollView, Keyboard} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {CommonActions} from '@react-navigation/native';
@@ -113,6 +113,7 @@ function App(): React.JSX.Element {
       // Show What's New if user hasn't seen this version yet
       const seenVersion = storage.getString(STORAGE_KEYS.SEEN_VERSION);
       if (seenVersion !== APP_VERSION) {
+        Keyboard.dismiss();
         setShowWhatsNew(true);
       }
 
@@ -150,6 +151,7 @@ function App(): React.JSX.Element {
   }, [handleURL, refreshLogs, refreshBuckets, refreshTasks, spawnRecurringTasks]);
 
   const dismissWhatsNew = () => {
+    Keyboard.dismiss();
     storage.setString(STORAGE_KEYS.SEEN_VERSION, APP_VERSION);
     setShowWhatsNew(false);
   };
@@ -173,7 +175,8 @@ function App(): React.JSX.Element {
           visible={showWhatsNew}
           transparent
           animationType="slide"
-          onRequestClose={dismissWhatsNew}>
+          onRequestClose={dismissWhatsNew}
+          onShow={() => Keyboard.dismiss()}>
           <View style={{flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)'}}>
             <View style={{
               backgroundColor: '#141821',
